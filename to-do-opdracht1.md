@@ -40,21 +40,23 @@
 
 ---
 
-### [x] MAANDAGAVOND — VISUALISATIE INLEVEREN & COMMITTEN (Afgerond!)
+### [x] MAANDAGAVOND — VISUAL INLEVEREN, CODE DOORGRONDEN & COMMITTEN (Afgerond!)
 - [x] **Git commit gemaakt op branch `les1`**:
-  - Alle 8 bestanden veilig vastgelegd (commit `2670b3f`), linters en notebook-cleaners met succes gedraaid!
+  - Alle bestanden veilig vastgelegd, linters en link-checkers met succes gedraaid!
 - [x] **Visual ingeleverd**:
   - Draft visualisatie en toelichting via de mail gedeeld met docent Raoul.
+- [x] **Code & transformaties volledig doorgrond**:
+  - Zowel de dataverrijking (`DayPart`, `EmojiOnly`, `RegexFeature` in `01.3`) als de visualisatiecode (`02.5`) tot in detail begrepen.
+  - Conceptueel architectuur-schema (`Source -> Graph -> Sinks -> Repository -> Serve`) vastgelegd in `img/data_architectuur_flow.png`.
+- [x] **Pitch van 1-2 minuten voorbereid**:
+  - Kernverhaal paraat: communicatiepiek in de middag (47% van alle berichten).
+  - Ontwerpkeuzes paraat: preattentive processing (<50ms) met één WhatsApp-groene staaf, reductie van clutter (van 8 naar 4 staven n.a.v. feedback klasgenoot), directe data labels en krantenkop als titel.
 
 ---
 
-### [ ] DINSDAGOCHTEND — PITCH & CODE OPDRACHT 1 KLAARZETTEN
-- [ ] **Korte pitch voorbereiden (1-2 minuten)**:
-  - De kernboodschap paraat hebben: onze communicatiepiek in de middag (47% van alle berichten).
-  - Kunnen toelichten waarom je n.a.v. feedback van je klasgenoot switchte van 8 naar 4 staven (snelle preattentive verwerking <50ms, één duidelijke groene staaf).
-- [ ] **Eigen code nog even bestuderen**:
-  - Zodat je zonder haperen kunt uitleggen hoe je plot en annotaties in `02.5-your_turn_jeffrey.ipynb` zijn opgebouwd.
-- *(Let op: de voorbereiding van de overige theorie-notebooks 2.2 t/m 2.4 en Les 3 staat nu in [to-do-opdracht2.md](to-do-opdracht2.md)!)*
+### [ ] DINSDAGOCHTEND — ONTSPANNEN CHECK VOOR DE LES
+- [ ] **Optioneel**: De pitch nog één keer hardop doornemen (1 minuut) en [dagritme_vergelijking.png](img/dagritme_vergelijking.png) klaarzetten op je scherm.
+- *(Je bent al helemaal klaar voor de presentatie van vanmiddag/vanavond!)*
 
 ---
 
