@@ -40,12 +40,11 @@
 
 ---
 
-### [ ] MAANDAGAVOND — VISUALISATIE INLEVEREN & COMMITTEN
-- [ ] **Git commit maken op branch `les1`**:
-  - Alle bestanden toevoegen (`img/dagritme_vergelijking.png`, notebooks van les 1 en les 2, to-do lijst).
-  - Lefthook pre-commit controle laten slagen.
-- [ ] **Inleverpunt controleren**:
-  - Op Canvas controleren of Raoul een apart inleverbakje heeft geopend voor de draft van Visualisatie 1. Zo ja, de PNG of notebook uploaden.
+### [x] MAANDAGAVOND — VISUALISATIE INLEVEREN & COMMITTEN (Afgerond!)
+- [x] **Git commit gemaakt op branch `les1`**:
+  - Alle 8 bestanden veilig vastgelegd (commit `2670b3f`), linters en notebook-cleaners met succes gedraaid!
+- [x] **Visual ingeleverd**:
+  - Draft visualisatie en toelichting via de mail gedeeld met docent Raoul.
 
 ---
 
