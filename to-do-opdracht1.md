@@ -48,15 +48,13 @@
 
 ---
 
-### [ ] DINSDAGOCHTEND — LES 2 VOORBEREIDEN & PITCH KLAARZETTEN
-- [ ] **Les 2 notebooks doornemen**:
-  - [ ] `02.2-comparing_categories.ipynb`: Schwabish-principes op showcase-data (bar plots, grouped bars, heatmaps).
-  - [ ] `02.3-simpsons_paradox.ipynb`: Simpson's paradox (waarom subgroepen een geaggregeerd beeld kunnen omdraaien).
-  - [ ] `02.4-counting-and-averages.ipynb`: Berichten tellen vs. mensen tellen (valkuil van veelpraters en betrouwbaarheid).
+### [ ] DINSDAGOCHTEND — PITCH & CODE OPDRACHT 1 KLAARZETTEN
 - [ ] **Korte pitch voorbereiden (1-2 minuten)**:
   - De kernboodschap paraat hebben: onze communicatiepiek in de middag (47% van alle berichten).
-  - Kunnen uitleggen waarom je n.a.v. feedback van je klasgenoot switchte van 8 naar 4 staven (snelle preattentive verwerking <50ms, één duidelijke groene staaf).
-- [ ] **Eigen code nog even bestuderen**: Zodat je zonder haperen kunt uitleggen hoe je plot is opgebouwd.
+  - Kunnen toelichten waarom je n.a.v. feedback van je klasgenoot switchte van 8 naar 4 staven (snelle preattentive verwerking <50ms, één duidelijke groene staaf).
+- [ ] **Eigen code nog even bestuderen**:
+  - Zodat je zonder haperen kunt uitleggen hoe je plot en annotaties in `02.5-your_turn_jeffrey.ipynb` zijn opgebouwd.
+- *(Let op: de voorbereiding van de overige theorie-notebooks 2.2 t/m 2.4 en Les 3 staat nu in [to-do-opdracht2.md](to-do-opdracht2.md)!)*
 
 ---
 
