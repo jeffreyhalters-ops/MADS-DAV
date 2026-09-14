@@ -64,8 +64,8 @@
 
 ---
 
-### [ ] RICHTING LES 3 — DEFINITIEVE INLEVERING (VOOR CIJFER)
-- [ ] Feedback uit Les 2 verwerken in de visualisatie en reflectie.
+### [ ] WOENSDAGAVOND — FEEDBACK VERWERKEN & DEFINITIEVE INLEVERING (VOOR CIJFER)
+- [ ] **Woensdagavond (eerste 30 min)**: Feedback en tips van docent Raoul uit Les 2 direct verwerken in `02.5-your_turn_jeffrey.ipynb` en de reflectie.
 - [ ] Definitieve inlevering van Visualisatie 1 voor de officiële beoordeling.
 
 ---
