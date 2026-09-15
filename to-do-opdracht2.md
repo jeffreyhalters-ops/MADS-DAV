@@ -13,21 +13,27 @@ Waar **Opdracht 1** ging over een statische categorische vergelijking (het dagri
 
 ## Tijdplanning & Roadmap (De 4 Werkblokken)
 
-### [ ] 1. WOENSDAGAVOND (ca. 2,5 uur) — Afronding Les 2 Theorie & Feedback Opdracht 1
-*Doel: De theorie van Les 2 afronden zolang het nog vers in het geheugen zit, plus feedback van Raoul borgen.*
+### [x] 1. VOORBEREIDING LES 2 — Afronding Theorie, Verantwoording & Verdieping (Afgerond!)
+*Doel: De theorie van Les 2 beheersen, verantwoording toevoegen aan de Hero visual, en een empirische achtervang bouwen.*
 
-- [ ] **Feedback Opdracht 1 borgen (ca. 30 min)**:
-  - Feedback van docent Raoul uit Les 2 noteren en verwerken in `02.5-your_turn_jeffrey.ipynb` (zie [to-do-opdracht1.md](to-do-opdracht1.md)).
-- [ ] **`02.2-comparing_categories.ipynb` (ca. 45 min)**:
-  - Schwabish-principes op showcase-data (pinguïns en Titanic).
-  - Keuze tussen staafdiagrammen, grouped bars en heatmaps.
-  - Percentage altijd met de noemer tonen (geen losse percentages zonder absolute aantallen).
-- [ ] **`02.3-simpsons_paradox.ipynb` (ca. 30 min)**:
-  - Simpson's paradox doorgronden: waarom een geaggregeerde trend compleet kan omdraaien als je uitsplitst naar subgroepen.
-  - Leren zoeken naar verstorende variabelen (periode, activiteit, platform, etc.).
-- [ ] **`02.4-counting-and-averages.ipynb` (ca. 35 min)**:
-  - Berichten tellen vs. mensen tellen (de valkuil van veelpraters).
-  - Wat een 95%-betrouwbaarheidsinterval (error bar) betekent voor claims.
+- [x] **`02.2-comparing_categories.ipynb`**:
+  - Volledig vertaald en doorgenomen in `02.2-comparing_categories jeffrey.ipynb`.
+  - Schwabish-principes op showcase-data (pinguïns en Titanic) doorgrond.
+  - Percentage altijd met de noemer tonen (nooit losse percentages zonder absolute aantallen).
+- [x] **`02.3-simpsons_paradox.ipynb`**:
+  - Volledig vertaald en doorgenomen in `02.3-simpsons_paradox jeffrey.ipynb`.
+  - Simpson's paradox doorgrond: waarom een geaggregeerde trend kan omdraaien op subgroepniveau.
+  - Barbell plot leren toepassen om de kloof (*the gap*) direct inzichtelijk te maken.
+- [x] **`02.4-counting-and-averages.ipynb`**:
+  - Volledig vertaald en doorgenomen in `02.4-counting-and-averages jeffrey.ipynb`.
+  - Berichten tellen vs. mensen tellen (de valkuil van veelpraters) en 95%-betrouwbaarheidsintervallen.
+- [x] **Hero Visualisatie aangescherpt met dataverantwoording (Richting 3)**:
+  - Subtiele cursieve noot toegevoegd onder de X-as van `img/dagritme_vergelijking.png` en in `02.5-your_turn_jeffrey.ipynb`.
+  - Noemer en filtercontext direct inzichtelijk: 6.059 inhoudelijke berichten (355 gefilterd) over 928 actieve dagen (2021–2026).
+- [x] **Verdiepingsanalyse & Achtervang gereed (`02.5-verdieping_simpsons_jeffrey.ipynb`)**:
+  - **Deel A (Weekdag vs. Weekend)**: Genormaliseerd op relatieve percentages om de 5 vs 2 dagen bias op te heffen. Toont dat in het weekend de ochtend nét iets actiever is dan de middag (39,8% vs 38,8%).
+  - **Deel B (Partner vs. Student via Barbell Plot)**: Toont aan dat de gap tussen Jeffrey en Rick maximaal 2,0%-punt is (middag 46,8% vs 46,9%). Er is géén sprake van een verborgen Simpson's paradox tussen personen.
+  - Hoge resolutie figuur geëxporteerd naar `img/dagritme_verdieping_simpsons.png` als achtervang voor de pitch.
 
 ---
 
