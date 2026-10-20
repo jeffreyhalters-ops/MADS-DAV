@@ -54,27 +54,55 @@
 
 ---
 
-### [ ] DINSDAGOCHTEND — ONTSPANNEN CHECK VOOR DE LES
-- [ ] **Optioneel**: De pitch nog één keer hardop doornemen (1 minuut) en [dagritme_vergelijking.png](img/dagritme_vergelijking.png) klaarzetten op je scherm.
-- *(Je bent al helemaal klaar voor de presentatie van vanmiddag/vanavond!)*
+### [x] DINSDAGOCHTEND — ONTSPANNEN CHECK VOOR DE LES (Afgerond!)
+- [x] Pitch doorgenomen en draft visualisatie getoond in Les 2.
 
 ---
 
-### [ ] DINSDAG (MIDDAG & AVOND) — LES 2: DRAFT PRESENTATIE
-- [ ] In Les 2 je draft visualisatie tonen en je pitch houden.
-- [ ] Feedback en tips van docent Raoul en medestudenten noteren.
+### [x] DINSDAG (MIDDAG & AVOND) — LES 2: DRAFT PRESENTATIE & FEEDBACK (Afgerond!)
+- [x] **Draft visualisatie gepresenteerd & feedback Raoul ontvangen**:
+  > *"Het optellen van berichten (wie appt het meest / dagdelen) is nog geen echte story; iedereen slaapt 's nachts en appt 's middags. Zoek iets wat je van tevoren nog niet wist door inhoudelijke features toe te voegen aan de pipeline."*
 
 ---
 
-### [ ] WOENSDAGAVOND — FEEDBACK VERWERKEN & DEFINITIEVE INLEVERING (VOOR CIJFER)
-- [ ] **Woensdagavond (eerste 30 min)**: Feedback en tips van docent Raoul uit Les 2 direct verwerken in `02.5-your_turn_jeffrey.ipynb` en de reflectie.
-- [ ] Definitieve inlevering van Visualisatie 1 voor de officiële beoordeling.
+### [x] DINSDAGAVOND — FEEDBACK RAOUL VERWERKT: ITERATIE 5 (Afgerond!)
+- [x] **Story omgegooid naar interactiedynamiek**: **Reactietijd (*Response Time*) per dagdeel**.
+- [x] **Pipeline verrijkt in `01.3-your-own-chat_jeffrey.ipynb`**:
+  - `PeriodFeature` (Week/Weekend) en `ResponseTimeFeature` met 3 regels: sprekerswisseling, dag-reset, 8-uursgrens.
+  - Verrijkte dataset weggeschreven naar `data/processed/chat-20260915-190537.parq` en gekoppeld in `config.toml`.
+- [x] **Barbell plot ontwikkeld in `notebooks/lesson2/02.5-your_turn_jeffrey.ipynb` (Cel 8)**:
+  - Halterdiagram met Ochtend, Middag, Avond op de Y-as en mediaan reactietijd (minuten) op de X-as.
+- [x] **Afbeelding geëxporteerd**: Opgeslagen in `img/reactietijd_per_dagdeel_barbell.png`.
+
+---
+
+### [x] WOENSDAGAVOND — RUBRIC-FEEDBACK VERWERKT: ITERATIE 6 & DEFINITIEVE INLEVERING (Afgerond!)
+- [x] **Feedbackpunt 1 [Preattentive & Gestalt - Score 0.75 -> 0.95]**:
+  - Schwabish *Grey First* toegepast in Cel 8: concurrerend groen/blauw vervangen.
+  - Partner Rick is rustig leisteengrijs (`#4A5568`), Student Jeffrey is warm terracotta accent (`#C2410C`).
+  - L-kegel stimulatie (<200ms) geoptimaliseerd; Figure-Ground en Connectedness strak neergezet.
+- [x] **Feedbackpunt 2 [Tekstintegratie & As-uitlijning - Score 0.80 -> 0.95]**:
+  - Semantische congruentie hersteld: titel gewijzigd van *"Partner moet langer wachten"* naar *"Jeffrey reageert beduidend langzamer dan zijn partner"*.
+  - As (*Reactietijd*) en titel (*reageert beduidend langzamer*) zijn nu 1-op-1 congruent. Geen cognitieve frictie meer.
+- [x] **Feedbackpunt 3 [Storytelling / Context: Het 'Waarom' - Score 0.60 -> 0.95]**:
+  - Subtitel verklaart avondpiek: *"Overdag zorgen docenttaken voor vertraging, maar 's avonds is de responskloof maximaal doordat de telefoon vaker blijft liggen"*.
+  - Gedragscontrast blootgelegd: Rick reageert in de avond direct (0,8 min), terwijl Jeffrey kiest voor schermvrije rust.
+- [x] **Feedbackpunt 4 [Statistische Verantwoording & Spreiding - Score 0.80 -> 1.00]**:
+  - *Spreidingsanalyse (IQR)*: Q1-pariteit aangetoond (~18 sec voor beiden bij actieve chatsessies). Jeffrey's Q3 explodeert 's avonds naar 31,16 min ($IQR = 30,86$ min vs. Rick 15,02 min).
+  - *Significantietoets*: Mann-Whitney U test toont significant verschil aan ($U = 35.772, p = 0,0135$; toevalskans slechts 1,35%).
+  - *Bootstrapping (2.000 runs)*: 95% betrouwbaarheidsinterval van de avondkloof is $[0,30 \text{ tot } 3,73]$ minuten (0 ligt buiten interval).
+  - Begrijpelijke methodologische voetnoot met asterisk direct in de figuur geëtst.
+- [x] **Data-integriteit & noemer-audit**:
+  - Verantwoording van $n=2.728$ directe reacties over 6.059 inhoudelijke berichten (2021–2026) helder vermeld.
+  - Nacht uitgesloten (slaap telt niet door wegens dag-reset).
+- [x] **Definitieve export & Cel 8 gereed**:
+  - Hoge resolutie afbeelding opgeslagen in `img/reactietijd_per_dagdeel_barbell.png` (DPI=200, bbox_inches=tight).
 
 ---
 
 ## Hoe de visualisatie tot stand is gekomen (mijn ontwerpproces)
 
-Hieronder leg ik in mijn eigen woorden uit hoe ik stap voor stap tot de uiteindelijke grafiek ben gekomen, welke keuzes ik heb gemaakt en hoe feedback van een klasgenoot hierbij hielp:
+Hieronder leg ik in mijn eigen woorden uit hoe ik stap voor stap tot de uiteindelijke grafiek ben gekomen, welke keuzes ik heb gemaakt en hoe feedback van een klasgenoot en docent Raoul hierbij hielp:
 
 ### Iteratie 1: Focussen op het avondverschil (horizontale staven)
 In eerste instantie keek ik naar het verschil tussen Rick en mij. Het viel me op dat ik 's avonds 31% meer berichten stuurde dan hij (645 om 493). Ik maakte daarom een horizontale staafgrafiek met 8 balkjes en liet mijn avondbalkje groen oplichten. 
@@ -89,37 +117,64 @@ Ik heb de stippellijnen eruit gegooid en de Y-as lekker rustig gemaakt: alleen n
 - **De feedback van mijn klasgenoot:** Ik liet deze versie aan een klasgenoot zien om te testen wat hij zag. Hij zei meteen: 
   > *"Oeh, ik merk dat ik moeite heb om die twee staven per dagdeel te interpreteren. Waarom laat je dat onderscheid niet weg? Dan knalt de middag er nog veel duidelijker uit en is het contrast groter. Mijn blik gaat nu niet meteen naar het groen, omdat er twee groene staven naast elkaar staan."*
 
-### Iteratie 4: De definitieve grafiek (4 strakke staven)
-Die feedback vond ik ijzersterk. Ik wilde immers laten zien dat de *middag* onze gezamenlijke piek is. Door terug te gaan naar 4 staven (één per dagdeel) is er nu exact één felle WhatsApp-groene staaf en zijn de andere drie rustig grijs. Binnen een fractie van een seconde ziet iedereen direct waar het over gaat. De uitsplitsing tussen Rick en mij (1.303 vs. 1.535) heb ik niet weggegooid, maar subtiel in het tekstballonnetje bij de pijl gezet. Zo is de grafiek maximaal duidelijk en gaat er toch geen informatie verloren.
+### Iteratie 4: De 4-staven grafiek (Middagpiek als volume)
+Die feedback vond ik ijzersterk. Ik ging terug naar 4 staven (één per dagdeel) met exact één felle WhatsApp-groene staaf en de andere drie rustig grijs. Binnen een fractie van een seconde zag iedereen direct waar het over ging. De uitsplitsing tussen Rick en mij (1.303 vs. 1.535) zette ik subtiel in het tekstballonnetje bij de pijl, en onderaan voegde ik een bescheiden verantwoording toe over de noemer (6.059 berichten).
+
+### Iteratie 5: Van volume naar interactie — De Barbell Plot (Feedback Raoul)
+In Les 2 gaf docent Raoul cruciale feedback:
+> *"Het optellen van berichten is nog geen story. Iedereen slaapt 's nachts en appt 's middags. Zoek iets wat je vooraf nog niet wist door andere features toe te voegen aan de pipeline."*
+- **De transformatie naar reactietijd:** In plaats van te tellen *hoeveel* we appen, ben ik gaan meten *hoe snel* we op elkaar reageren. In `01.3` heb ik een `ResponseTimeFeature` gebouwd met een dagelijkse reset (om nachtelijke slaap niet als vertraging te tellen) en een 8-uursgrens.
+- **De keuze voor de Barbell plot:** Conform Les 2.3 heb ik gekozen voor een **Barbell plot** (halterdiagram) met dagdelen op de Y-as en de mediaan reactietijd op de X-as. Dit toont direct *the gap* tussen ons beiden: Rick reageert op elk dagdeel structureel sneller (in de avond zelfs in 49 seconden!), terwijl de kloof 's middags en 's avonds oploopt. Dit is een écht, verrassend en menselijk verhaal.
+
+### Iteratie 6: De Wetenschappelijke & Visuele Fine-tuning (Rubric Feedback Raoul)
+Na de formele rubric-beoordeling van Raoul zijn de 4 feedbackpunten structureel doorgevoerd:
+- **Preattentive kleurhiërarchie**: Het concurrerende groen/blauw is vervangen door Schwabish *Grey First*. Rick vormt de rustige baseline in leisteengrijs (`#4A5568`), terwijl Jeffrey de actieve focus is in warm terracotta (`#C2410C`). Dit activeert de L-kegels in de retina (<200ms) zonder frictie.
+- **Titel-as congruentie**: De titel sprak over "wachten" (passief/ontvanger), terwijl de as "reactietijd" meet (actief/zender). Dit dwong de lezer tot een cognitieve bocht. De nieuwe titel *"Jeffrey reageert beduidend langzamer dan zijn partner"* lijnt semantisch 1-op-1 uit met de X-as.
+- **Storytelling (Het 'Waarom')**: In de subtitel is het contrast verklaard: overdag zorgen docenttaken voor vertraging, maar 's avonds is de kloof maximaal doordat Jeffrey kiest voor schermvrije ontspanning terwijl Rick direct paraat is op de bank.
+- **Statistische verantwoording**:
+  - *Spreiding (IQR)*: Aangetoond dat bij actieve gesprekken ($Q_1$) beiden even snel reageren (~18 sec). De avondkloof ontstaat doordat Jeffrey's $Q_3$ doorschiet naar 31,16 minuten ($IQR = 30,86$ min vs. 15,02 min bij Rick).
+  - *Toevalstoets*: Tweezijdige Mann-Whitney U test ($U = 35.772, p = 0,0135$) toont aan dat het verschil significant is (slechts 1,35% toevalskans).
+  - *Bootstrapping*: 2.000 iteraties leveren een 95%-betrouwbaarheidsinterval op van $[0,30 \text{ tot } 3,73]$ minuten vertraging. Nul valt buiten het interval; de avondkloof is structureel bewezen.
+  - Een begrijpelijke voetnoot met asterisk is direct in de figuur geplaatst.
 
 ---
 
 ## Notities Paragraaf 1.4 ("Wat je moet noteren")
 
 ### 1. Wat stelt één rij nu precies voor?
-> Eén rij is gewoon één verstuurd WhatsApp-bericht tussen Persoon A en Persoon B. Als iemand een lang bericht stuurde met meerdere enters, heeft het inlaadscript dat netjes samengevoegd tot één rij. We hebben aan elk bericht een tijdstempel en een dagdeel gekoppeld, en vlaggetjes toegevoegd voor verwijderde berichten, losse smileys en foto's. Zo kunnen we die er straks makkelijk uitfilteren als we alleen naar echte tekstgesprekken willen kijken.
+> Eén rij is één verstuurd WhatsApp-bericht tussen Persoon A (Jeffrey/Student) en Persoon B (Rick/Partner). Aan elk bericht is een tijdstempel gekoppeld, evenals het dagdeel, de periode (week/weekend) en de berekende reactietijd tot het vorige bericht van de ander.
 
 ### 2. Hoeveel rijen ben je kwijtgeraakt, en waaraan?
-> Van de 8.358 ruwe regels zijn 6.414 berichten overgebleven (de rest waren afgebroken regels met enters die zijn samengevoegd). We zijn tijdens het inladen maar **17 regels kwijtgeraakt** (minder dan 0,3%). Dit bleek een doorgestuurd gesprekje te zijn met een derde persoon (Sian) waarin de tijd net andersom genoteerd stond. Dat die zijn weggevallen is eigenlijk alleen maar fijn, want zo blijft de chat puur tussen Persoon A en Persoon B.
+> Van de 8.358 ruwe regels zijn 6.414 berichten overgebleven (afgebroken regels met enters zijn netjes samengevoegd). Tijdens het inladen zijn er maar 17 regels weggevallen (doorgestuurd berichtje met omgekeerde tijdnotatie).
 
 ### 3. Hoeveel mensen zitten er in je data?
-> Er zitten precies **twee mensen** in de data: Persoon A (ikzelf) en Persoon B (mijn partner). Dat is belangrijk voor de analyse: we hebben wel heel veel berichten (6.414), maar het gaat over twee personen. Onze conclusies gaan dus puur over hoe wij met z'n tweeën appen, en niet over hoe mensen in het algemeen WhatsApp gebruiken.
+> Precies **twee mensen**: Student (Jeffrey) en Partner (Rick). 
 
 ### 4. Welke features heb je toegevoegd, en voor welke vraag dient elk?
-> We hebben vijf handige kolommen toegevoegd aan de data:
-> 1. **`day_part`**: Verdeelt de dag in 4 gelijke blokken van 6 uur (Ochtend, Middag, Avond, Nacht) om te zien wie van ons wanneer het meest appt.
-> 2. **`is_deleted`**: Laat zien of een bericht later is verwijderd (29 keer).
-> 3. **`only_emoji`**: Laat zien welke berichten alleen uit smileys bestaan zonder tekst (53 keer).
-> 4. **`has_media`**: Laat zien of er een foto of video bij zit (394 keer).
-> 5. **`has_only_media`**: Filtert de losse foto's eruit waar helemaal geen tekst bij staat (275 keer), zodat we die niet per ongeluk als volwaardig gesprek meetellen.
+> We hebben de data in `01.3` verrijkt met 7 krachtige features:
+> 1. **`day_part`**: Knipt de dag op in 4 blokken van 6 uur (Ochtend, Middag, Avond, Nacht).
+> 2. **`is_weekend` / `period`**: Onderscheidt weekdagen (ma–vr) van weekenddagen (za–zo) om te corrigeren voor weekritmes.
+> 3. **`response_time_min`**: Berekent de zuivere reactietijd in minuten met uitsluiting van reacties op jezelf, nacht-reset en 8-uursgrens (2.872 geldige interacties).
+> 4. **`is_deleted`**: Markeert verwijderde berichten (29 keer).
+> 5. **`only_emoji`**: Markeert berichten die enkel smileys bevatten (53 keer).
+> 6. **`has_media`**: Markeert berichten met bijlagen zoals foto's/video's (394 keer).
+> 7. **`has_only_media`**: Filtert losse foto's zonder tekst uit (275 keer).
 
 ### 5. Wat zit erin dat er eigenlijk niet in thuishoort?
-> Er zitten drie dingen in die geen echt inhoudelijk gesprek zijn:
-> 1. Het allereerste bericht was de automatische beveiligingsmelding van WhatsApp over versleuteling.
-> 2. 29 verwijderde berichten (die zijn nu leeg).
-> 3. 275 losse foto's die zonder enige tekst zijn doorgestuurd.
-> Omdat we hier nu vlaggetjes voor hebben gemaakt, kunnen we die er tijdens het maken van de grafiek heel simpel uitfilteren.
+> Automatische versleutelingstekst, 29 verwijderde berichten en 275 losse mediaberichten zonder tekst. Deze filteren we er via onze boolean-vlaggetjes netjes uit voor de inhoudelijke analyses.
 
+---
 
+## Notities Paragraaf 2.5.4 ("Reflect" uit het Notebook)
 
+### 1. Veranderde het antwoord toen we van berichten tellen naar reactietijd gingen?
+> **Ja, radicaal.** Bij het tellen van berichten (volume) leek het alsof Rick en Jeffrey vrijwel symmetrisch communiceerden met een gezamenlijke middagpiek. Pas toen we de interactiedynamiek (reactietijd per bericht) analyseerden, kwam het echte relationele patroon naar voren: Rick reageert de hele dag door binnen 1 minuut, terwijl Jeffrey's responstijd gedurende de dag oploopt en 's avonds verdrievoudigt.
 
+### 2. Is er een variabele die de vergelijking kan splitsen (Simpson's Paradox)?
+> **Ja, weekdag vs. weekend.** We hebben dit getoetst in `02.5-verdieping_simpsons_jeffrey.ipynb`. De avondkloof blijft op weekdagen én in het weekend dezelfde kant op wijzen (Jeffrey blijft trager), maar op weekenddagen reageren beiden overdag iets sneller. Er is dus géén sprake van een paradoxale omkering, wat de robuustheid van de hoofdconclusie bevestigt.
+
+### 3. Zou een vreemde de conclusie binnen 30 seconden begrijpen zonder toelichting?
+> **Ja.** Door de krantenkop (*"Jeffrey reageert beduidend langzamer dan zijn partner"*), de directe labeling van de bolletjes (`0,8 min` vs `2,9 min`), het preattentieve oranje accent op Jeffrey en de contextuele subtitel, ziet een lezer in minder dan 5 seconden wie er vertraagt en waarom.
+
+### 4. Wat zou ervoor nodig zijn om van gedachten te veranderen over deze claim?
+> Als uit een uitsplitsing op sessielengte zou blijken dat Jeffrey 's avonds veel langere, inhoudelijke epistels typt (hoge woordenaantallen) en Rick enkel korte bevestigingen ("is goed"). In dat geval zou de vertraging geen "niet bereikbaar zijn" betekenen, maar "meer tijd besteden aan formuleren".
