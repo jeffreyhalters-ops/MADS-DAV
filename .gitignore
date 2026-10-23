@@ -37,3 +37,7 @@ AGENTS.local.md
 .lefthook-local.yml
 lefthook-local.yml
 agenda/
+
+_Users_*
+
+scratch/
