@@ -1,24 +1,20 @@
 {
   "mcpServers": {
     "goad": {
-      "command": "sh",
+      "command": "uv",
       "args": [
-        "-c",
-        "uv run --no-project https://raw.githubusercontent.com/raoulg/goad_toolkit/$GOAD_REF/goad_mcp.py"
-      ],
-      "env": {
-        "GOAD_REF": "stable"
-      }
+        "run",
+        "--no-project",
+        "https://raw.githubusercontent.com/raoulg/goad_toolkit/stable/goad_mcp.py"
+      ]
     },
     "codestyle": {
-      "command": "sh",
+      "command": "uv",
       "args": [
-        "-c",
-        "uv run --no-project https://raw.githubusercontent.com/raoulg/codestyle/$CODESTYLE_REF/codestyle_mcp.py"
-      ],
-      "env": {
-        "CODESTYLE_REF": "stable"
-      }
+        "run",
+        "--no-project",
+        "https://raw.githubusercontent.com/raoulg/codestyle/stable/codestyle_mcp.py"
+      ]
     }
   }
 }
