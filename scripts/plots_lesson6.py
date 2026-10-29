@@ -8,6 +8,7 @@ cache on the hub, and all-MiniLM-L6-v2 for the chat messages. Each computation r
 code and seeds of its notebook, so the numbers match 06.1–06.4.
 """
 
+import itertools
 import json
 import time
 from pathlib import Path
@@ -18,6 +19,7 @@ import numpy as np
 import pandas as pd
 import torch
 from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm
+from matplotlib.patches import Polygon
 from mpl_toolkits.mplot3d.axes3d import Axes3D
 from scipy.stats import spearmanr
 from sentence_transformers import SentenceTransformer
@@ -361,6 +363,125 @@ for k, (coords, title) in enumerate(
     bare(ax)
     ax.set_title(title)
 save(fig, "swissroll")
+
+
+# t-SNE in a nutshell, on the same roll and map: for one point, whom it is likely to pick as a
+# neighbour in the data (p_{j|i}, a normal curve as wide as the perplexity asks) and in the map
+# (q_{j|i}, a Student-t curve); t-SNE moves the map until the two agree
+def conditional_p(points, i, perplexity=30.0):
+    """p_{j|i} for every j, with the width found by bisection on the perplexity."""
+    squared = ((points - points[i]) ** 2).sum(axis=1)
+    squared[i] = np.inf
+    low, high = 1e-3, 1e3
+    for _ in range(60):
+        sigma = np.sqrt(low * high)
+        weights = np.exp(-(squared - squared.min()) / (2 * sigma**2))
+        p = weights / weights.sum()
+        if np.exp(-np.sum(p[p > 0] * np.log(p[p > 0]))) > perplexity:
+            high = sigma
+        else:
+            low = sigma
+    return p
+
+
+def conditional_q(points, i):
+    """q_{j|i} for every j: the Student-t curve of the map, normalised over all other points."""
+    weights = 1 / (1 + ((points - points[i]) ** 2).sum(axis=1))
+    weights[i] = 0
+    return weights / weights.sum()
+
+
+# a point halfway along the sheet and halfway across it
+picker = int(
+    np.argmin((position - np.median(position)) ** 2 + ((roll[:, 1] - 10.5) / 3) ** 2)
+)
+picks_p = np.argsort(conditional_p(roll, picker))[-30:]
+picks_q = np.argsort(conditional_q(roll_tsne, picker))[-30:]
+print(
+    f"nutshell: of the 30 likeliest picks in the data, {len(np.intersect1d(picks_p, picks_q))} "
+    "are among the 30 likeliest in the map"
+)
+# the picks see-through, so overlapping ones stay apart; the picker drawn last and opaque, and the
+# 3D panel told to keep that drawing order instead of sorting by depth
+fig = plt.figure(figsize=(13, 5.4))
+ax3 = cast(Axes3D, fig.add_subplot(1, 2, 1, projection="3d", computed_zorder=False))
+rest = np.setdiff1d(np.arange(len(roll)), picks_p)
+ax3.scatter(
+    roll[rest, 0], roll[rest, 1], roll[rest, 2], color=GREY_FAINT, s=6, depthshade=False
+)
+ax3.scatter(
+    *roll[picks_p].T, color=SECOND, s=50, alpha=0.5, linewidths=0, depthshade=False
+)
+ax3.scatter(
+    *roll[picker], color=ACCENT, s=200, edgecolor=BG, linewidths=2, depthshade=False
+)
+ax3.view_init(10, -70)
+ax3.set_box_aspect(None, zoom=1.3)
+clean_3d(ax3)
+ax3.set_title("data: whom $x_i$ picks, 30 largest $p_{j|i}$", fontsize=21)
+ax = fig.add_subplot(1, 2, 2)
+rest = np.setdiff1d(np.arange(len(roll)), picks_q)
+ax.scatter(roll_tsne[rest, 0], roll_tsne[rest, 1], color=GREY_FAINT, s=6)
+ax.scatter(*roll_tsne[picks_q].T, color=SECOND, s=50, alpha=0.5, linewidths=0)
+ax.scatter(*roll_tsne[picker], color=ACCENT, s=200, edgecolor=BG, linewidths=2)
+bare(ax)
+ax.set_title("map: whom $y_i$ picks, 30 largest $q_{j|i}$", fontsize=21)
+save(fig, "nutshell_picks")
+
+# the two curves against the distance to point i, both 1 at distance 0: six example neighbours
+# on each, and the bell dashed under the t curve for comparison
+distance = np.linspace(0, 4.5, 300)
+neighbours = np.array([0.5, 1.0, 1.6, 2.3, 3.1, 4.0])
+fig, axes = plt.subplots(2, 1, figsize=(6.6, 6.4), sharex=True)
+for ax, curve, colour, title in [
+    (
+        axes[0],
+        lambda x: np.exp(-(x**2) / 2),
+        ACCENT,
+        "data: $p_{j|i}$, a bell curve around $x_i$",
+    ),
+    (
+        axes[1],
+        lambda x: 1 / (1 + x**2),
+        SECOND,
+        "map: $q_{j|i}$, a curve with heavier tails",
+    ),
+]:
+    ax.plot(distance, curve(distance), color=colour, lw=3)
+    ax.vlines(neighbours, 0, curve(neighbours), color=colour, lw=1.5, alpha=0.6)
+    ax.scatter(neighbours, curve(neighbours), color=colour, s=50, zorder=3)
+    for x in neighbours[-2:]:
+        ax.annotate(
+            f"{curve(x):.2f}",
+            (x, curve(x)),
+            xytext=(0, 10),
+            textcoords="offset points",
+            ha="center",
+            color=colour,
+        )
+    ax.set_ylim(0, 1.08)
+    ax.set_yticks([0, 0.5, 1])
+    ax.set_ylabel("chance of a pick")
+    ax.set_title(title, fontsize=21)
+axes[1].plot(
+    distance,
+    np.exp(-(distance**2) / 2),
+    color=GREY_FAINT,
+    lw=2,
+    ls="--",
+    zorder=1,
+    label="bell curve",
+)
+axes[1].legend(loc="upper right")
+axes[0].annotate(
+    "",
+    xy=(1, np.exp(-0.5)),
+    xytext=(0, np.exp(-0.5)),
+    arrowprops={"arrowstyle": "<->", "color": GREY_DIM, "lw": 1.5},
+)
+axes[0].text(1.12, 0.66, r"$\sigma_i$, set by the perplexity", color=GREY_DIM)
+axes[1].set_xlabel("distance to point $i$")
+save(fig, "nutshell_curves")
 
 mnist = fetch_openml("mnist_784", version=1, as_frame=False, data_home=str(CACHE))
 digits, digit_labels = mnist["data"], mnist["target"].astype(np.uint8)
@@ -810,6 +931,112 @@ scatter_by(
 ax.set_title("1,500 messages, six authors, one row per message")
 save(fig, "blob")
 
+# the whole lesson in one picture: three messages, up to 384 axes, back down to two
+WHOLE = {
+    "like it? based on what?": SECOND,
+    "yeah that's definitely not good": ACCENT,
+    "because I'm a developer": THIRD,
+}
+picked = [int(np.flatnonzero(messages.message.to_numpy() == text)[0]) for text in WHOLE]
+
+# the data: a stack of three pages, edged in the colours of the three messages
+fig, ax = plt.subplots(figsize=(4.6, 4.8))
+for k, colour in enumerate(list(WHOLE.values())[::-1]):
+    x0, y0 = 0.36 * k, -0.30 * k
+    page = [
+        (x0, y0),
+        (x0 + 1.6, y0),
+        (x0 + 1.6, y0 + 1.6),
+        (x0 + 1.15, y0 + 2.05),
+        (x0, y0 + 2.05),
+    ]
+    fold = [(x0 + 1.15, y0 + 2.05), (x0 + 1.15, y0 + 1.6), (x0 + 1.6, y0 + 1.6)]
+    edge = [(x0, y0), (x0 + 0.1, y0), (x0 + 0.1, y0 + 2.05), (x0, y0 + 2.05)]
+    ax.add_patch(
+        Polygon(page, facecolor="#fdfcfa", edgecolor=GREY_DIM, lw=1.6, zorder=k)
+    )
+    ax.add_patch(
+        Polygon(fold, facecolor=GREY_FAINT, edgecolor=GREY_DIM, lw=1.2, zorder=k)
+    )
+    ax.add_patch(Polygon(edge, facecolor=colour, edgecolor="none", zorder=k))
+for row, width in enumerate([1.1, 1.2, 0.9, 1.2, 1.0, 0.6]):
+    y = 0.75 - row * 0.22
+    ax.plot(
+        [0.97, 0.97 + width],
+        [y, y],
+        color=GREY_FAINT,
+        lw=4,
+        solid_capstyle="round",
+        zorder=5,
+    )
+ax.set_xlim(-0.2, 2.6)
+ax.set_ylim(-0.8, 2.2)
+ax.set_aspect("equal")
+ax.set_axis_off()
+save(fig, "whole_docs")
+
+# the space: a hypercube, four of the 384 axes, with each message placed by its first four
+# coordinates; three axes are drawn as a cube, the fourth pulls a point towards the centre
+OBLIQUE = np.array([[1.0, 0.0], [0.0, 1.0], [-0.42, 0.30]])
+CUBE_CENTRE = np.array([0.5, 0.5, 0.5]) @ OBLIQUE
+
+
+def tesseract(p):
+    flat = p[:3] @ OBLIQUE
+    return CUBE_CENTRE + (flat - CUBE_CENTRE) * (1 - 0.5 * p[3])
+
+
+# each axis stretched over the three messages only, so their order along it is kept and
+# they spread over the cube instead of sitting together near its middle
+low, high = X[picked, :4].min(axis=0), X[picked, :4].max(axis=0)
+fig, ax = plt.subplots(figsize=(6.4, 4.8))
+corners = np.array(list(itertools.product([0, 1], repeat=4)), dtype=float)
+drawn = np.array([tesseract(c) for c in corners])
+for a, b in itertools.combinations(range(16), 2):
+    if np.abs(corners[a] - corners[b]).sum() != 1:
+        continue
+    axis = a == 0  # the four edges from the origin corner are the axes
+    ax.plot(
+        *zip(drawn[a], drawn[b]),
+        color=ACCENT if axis else GREY_FAINT,
+        lw=3 if axis else 1.4,
+        zorder=2 if axis else 1,
+        solid_capstyle="round",
+    )
+    if axis:
+        k = int(np.flatnonzero(corners[b] - corners[a])[0])
+        offset = [(0, -0.07), (0.06, 0), (-0.05, -0.04), (0.05, -0.04)][k]
+        label_x, label_y = (drawn[a] + drawn[b]) / 2 + offset
+        ax.text(
+            label_x,
+            label_y,
+            str(k + 1),
+            color=ACCENT,
+            ha="center",
+            va="center",
+            fontsize=16,
+        )
+for i, colour in zip(picked, WHOLE.values()):
+    inside = 0.2 + 0.6 * (X[i, :4] - low) / (high - low)
+    ax.scatter(
+        *tesseract(inside), color=colour, s=170, edgecolors=BG, linewidths=1.5, zorder=3
+    )
+ax.set_aspect("equal")
+ax.set_axis_off()
+save(fig, "whole_up")
+
+fig, ax = plt.subplots(figsize=(6.4, 4.4))
+ax.scatter(coords[:, 0], coords[:, 1], color=GREY_FAINT, s=8, linewidths=0)
+for i, colour in zip(picked, WHOLE.values()):
+    ax.scatter(*coords[i], color=colour, s=170, edgecolors=BG, linewidths=1.5, zorder=3)
+ax.set_xticks([])
+ax.set_yticks([])
+ax.set_xlabel("PC1")
+ax.set_ylabel("PC2")
+for side in ["left", "bottom"]:
+    ax.spines[side].set_color(GREY)
+save(fig, "whole_down")
+
 fig, ax = plt.subplots(figsize=(10, 4.8))
 ax.plot(np.arange(1, len(cumulative) + 1), cumulative, color=ACCENT)
 half = int(np.argmax(cumulative >= 0.5)) + 1
@@ -1049,6 +1276,52 @@ ax.set_xlabel(
 )
 save(fig, "race")
 
+# two routes from the same sessions: f labels them 0/1 by regex (the slide's "topic a": the
+# session mentions a phone), g embeds them; the picture takes its positions from g (t-SNE)
+# and its colours from f
+TOPIC_A = r"(?i)\b(?:phone|android|iphone|nexus|ubuntu touch|sms)\b"
+all_units = merge_messages(uk, ["author", "session_id"])
+routed = (
+    all_units[all_units.n_messages >= 5]
+    .sample(n=3000, random_state=42)
+    .reset_index(drop=True)
+)
+phone = routed.message.str.contains(TOPIC_A).to_numpy(dtype=bool)
+route_g = embed(routed.message)
+routed_2d = TSNE(
+    n_components=2, random_state=42, init="pca", metric="cosine"
+).fit_transform(route_g)
+
+
+def neighbour_also(points, mask, metric="euclidean"):
+    """Share of the masked points whose nearest other point is masked too."""
+    if metric == "cosine":
+        unit = points / np.linalg.norm(points, axis=1, keepdims=True)
+        distance = 1 - unit[mask] @ unit.T
+    else:
+        distance = np.linalg.norm(points[mask][:, None] - points[None], axis=-1)
+    distance[np.arange(mask.sum()), np.flatnonzero(mask)] = np.inf
+    return float(mask[distance.argmin(axis=1)].mean())
+
+
+print(
+    f"routes: {phone.mean():.1%} of 3,000 sessions mention a phone; nearest neighbour also "
+    f"labelled: picture {neighbour_also(routed_2d, phone):.0%}, "
+    f"384 dims {neighbour_also(route_g, phone, 'cosine'):.0%}"
+)
+for i in list(np.flatnonzero(phone)[:2]) + list(np.flatnonzero(~phone)[:2]):
+    print(
+        f"  row {i}: topic a {int(phone[i])}, vector "
+        f"{np.round(route_g[i, :3], 2).tolist()} … {route_g[i, -1]:.2f}"
+    )
+fig, ax = plt.subplots(figsize=(7.2, 5.6))
+ax.scatter(
+    routed_2d[~phone, 0], routed_2d[~phone, 1], color=GREY_FAINT, s=7, linewidths=0
+)
+ax.scatter(routed_2d[phone, 0], routed_2d[phone, 1], color=SECOND, s=12, linewidths=0)
+bare(ax)
+save(fig, "routes")
+
 sentiment_model = hf_pipeline(  # ty: ignore[no-matching-overload]
     model="lxyuan/distilbert-base-multilingual-cased-sentiments-student",
     top_k=None,
@@ -1111,6 +1384,11 @@ save(fig, "sentiment")
 FORMULAS = {
     "formula_cosine": r"$\cos(u, v) \;=\; \dfrac{u \cdot v}{|u|\;|v|}$",
     "formula_dot": r"$u \cdot v \;=\; u_1 v_1 + u_2 v_2 + \cdots + u_{384}\, v_{384}$",
+    "formula_tsne_x": r"$\mathcal{X} = \{x_1, \ldots, x_N\},\;\; x_i \in \mathbb{R}^D$",
+    "formula_tsne_y": r"$\mathcal{Y} = \{y_1, \ldots, y_N\},\;\; y_i \in \mathbb{R}^d,\;\; d < D$",
+    "formula_tsne_p": r"$p_{j|i} \;\propto\; \exp\left(-\Vert x_i - x_j \Vert^2 / 2\sigma_i^2\right)$",
+    "formula_tsne_q": r"$q_{j|i} \;\propto\; \left(1 + \Vert y_i - y_j \Vert^2\right)^{-1}$",
+    "formula_tsne_kl": r"$\min_{\mathcal{Y}}\; \mathrm{KL}(P \;\Vert\; Q)$",
 }
 with plt.rc_context({"mathtext.fontset": "cm"}):
     for name, tex in FORMULAS.items():

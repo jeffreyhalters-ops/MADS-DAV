@@ -753,7 +753,7 @@ http = [
 
 [[package]]
 name = "goad-toolkit"
-version = "0.2.16.1"
+version = "0.2.17"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "loguru" },
@@ -767,9 +767,9 @@ dependencies = [
     { name = "statsmodels" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/53/21/c7e9abe7b72cc2d779bd308a21b2524792f02f374c85437ad8821db39512/goad_toolkit-0.2.16.1.tar.gz", hash = "sha256:e26c964629b400f31480d81ae650e1eccc17a05dfc6ec1258dfc1775dc74c453", size = 6437435, upload-time = "2026-09-02T06:51:29.205Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0f/fb/22704da993cb559ccc78b7893011ffd891b9617acd9bb4b03c4adab0410c/goad_toolkit-0.2.17.tar.gz", hash = "sha256:5e786af6698f276ace94720bc80938ab5032125b674a6d40ca4e35a735493fc8", size = 6661890, upload-time = "2026-10-15T12:34:02.962Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1e/4d/918c5b9d7758641877acb765ece3807500705d3047d24e3d243945ad075e/goad_toolkit-0.2.16.1-py3-none-any.whl", hash = "sha256:e6337ebf42495656551434fe595578d77215a13c9c2f9c185fdcc83994da32d6", size = 39851, upload-time = "2026-09-02T06:51:15.594Z" },
+    { url = "https://files.pythonhosted.org/packages/cd/c4/885f2bce7afc35373431e3dd7392501a5dd2ac611cd42bd697c58e9816fb/goad_toolkit-0.2.17-py3-none-any.whl", hash = "sha256:df4f914ba53e4b2a78d1185be37f68dce5af5f05f90abb9e1e58cd6dd5e9f587", size = 41261, upload-time = "2026-10-15T12:33:47.941Z" },
 ]
 
 [[package]]
@@ -1808,6 +1808,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/f3/9a/ffbd852d58bd74a617fe2f8ee6a58a96982271ce41cf981eab22190b4a4b/pandas-3.0.5-cp312-cp312-pyemscripten_2024_0_wasm32.whl", hash = "sha256:b2acb4650527eec6822c3dadb2b771277b65e7dae7a267d4bccf65fd1bb3fbce", size = 7197652, upload-time = "2026-07-22T22:18:22.502Z" },
     { url = "https://files.pythonhosted.org/packages/70/b5/d2d3e9ae73362ba4229651b0ee1455cf78073a1ce585f6ff693782ce263e/pandas-3.0.5-cp312-cp312-win_amd64.whl", hash = "sha256:80a611068e8a3ac23f7398c6c14eb46dc974e5cc9997f653e2dcfd1da74edd41", size = 9831691, upload-time = "2026-07-22T22:18:24.534Z" },
     { url = "https://files.pythonhosted.org/packages/52/51/dea1e89d6a6796b9c43f85a09b484ee03edb8a4c4842e73e200a8c11301c/pandas-3.0.5-cp312-cp312-win_arm64.whl", hash = "sha256:25ff585b972a18ef1fe9ffa3ac6544d9950508aa76832e5147640b6022821e49", size = 9105796, upload-time = "2026-07-22T22:18:27.064Z" },
+]
+
+[[package]]
+name = "pandas-stubs"
+version = "3.0.5.260914"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c1/93/8948ae6c1e1e3d6833596fd266f7be2d27c1451b8be094975ad42c5e842e/pandas_stubs-3.0.5.260914.tar.gz", hash = "sha256:3f6fc1f147f68fd89c007105e7c94a948acb4ecd7eb20dc1c02e153c4ed5c250", size = 117622, upload-time = "2026-09-14T16:42:35.065Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9a/cb/5ad79e02a556cc23fed5816de0109fa8af660c66cfa5f4af74c3e8d4cd26/pandas_stubs-3.0.5.260914-py3-none-any.whl", hash = "sha256:39a1300c5c5c55fdf609e3476805decce5d5015539a4dcb683449f8feaeee2fb", size = 177344, upload-time = "2026-09-14T16:42:33.771Z" },
 ]
 
 [[package]]
@@ -3085,6 +3097,7 @@ dependencies = [
 dev = [
     { name = "jupyter" },
     { name = "notebooktester" },
+    { name = "pandas-stubs" },
     { name = "ruff" },
     { name = "ty" },
 ]
@@ -3093,7 +3106,7 @@ dev = [
 requires-dist = [
     { name = "click", specifier = ">=8.1.8" },
     { name = "datasets", specifier = ">=3.0.0" },
-    { name = "goad-toolkit", specifier = ">=0.2.16.1" },
+    { name = "goad-toolkit", specifier = ">=0.2.17" },
     { name = "huggingface-hub", specifier = ">=0.26.0" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "networkx", specifier = ">=3.4.2" },
@@ -3116,6 +3129,7 @@ requires-dist = [
 dev = [
     { name = "jupyter", specifier = ">=1.1.1" },
     { name = "notebooktester", specifier = ">=0.3.8" },
+    { name = "pandas-stubs", specifier = ">=3.0.5.260914" },
     { name = "ruff", specifier = ">=0.8.6" },
     { name = "ty", specifier = ">=0.0.71" },
 ]
