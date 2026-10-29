@@ -1,0 +1,24 @@
+output:
+  - summary
+  - failure
+
+pre-commit:
+  parallel: false
+  jobs:
+    - name: ruff format
+      run: uv run ruff format {staged_files}
+      glob: "*.{py,ipynb}"
+      stage_fixed: true
+
+    - name: ruff check
+      run: uv run ruff check --fix {staged_files}
+      glob: "*.{py,ipynb}"
+      stage_fixed: true
+
+    - name: ty check
+      run: uv run ty check
+      glob: "*.py"
+
+    - name: notebooktester
+      run: uv run notebooktester {staged_files}
+      glob: "*.ipynb"

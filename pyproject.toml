@@ -1,0 +1,52 @@
+[project]
+name = "wa-analyzer"
+version = "0.2.0"
+description = "Modulaire, Atlas-proof WhatsApp Data & Visualisatie Pipeline (MADS-DAV)"
+readme = "README.md"
+authors = [
+    { name = "Jeffrey Halters", email = "jeffrey.halters@student.hu.nl" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "click>=8.1.8",
+    "goad-toolkit>=0.2.15",
+    "loguru>=0.7.3",
+    "matplotlib>=3.10.1",
+    "networkx>=3.4.2",
+    "numpy>=2.2.3",
+    "pandas>=2.2.3",
+    "pyarrow>=19.0.1",
+    "pydantic>=2.10.6",
+    "scikit-learn>=1.6.1",
+    "scipy>=1.15.2",
+    "seaborn>=0.13.2",
+    "sentence-transformers>=3.4.1",
+    "statsmodels>=0.14.4",
+    "tqdm>=4.67.1",
+]
+
+[project.scripts]
+wa-analyzer = "main:main"
+
+[build-system]
+requires = ["uv_build>=0.8.15,<0.9.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ipykernel>=6.29.5",
+    "jupyter>=1.1.1",
+    "lefthook>=2.1.1",
+    "nbval>=0.11.0",
+    "notebooktester>=0.1.0",
+    "pytest>=8.3.5",
+    "ruff>=0.15.1",
+    "ty>=0.0.17",
+]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "C4", "PT", "S", "ANN"]
+ignore = ["ANN401"]
+
+[tool.ty.src]
+include = ["src", "main.py"]
