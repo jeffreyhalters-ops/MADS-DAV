@@ -1,6 +1,17 @@
-"""Feature-extractie modules voor tijd/bursts, tekst/regex en 384D embeddings."""
+"""Feature-extractie modules voor tijd/bursts, tekst/regex, stijlometrie en conceptnetwerken."""
 
+from wa_analyzer.features.concept_graph import (
+    CONCEPTS_16,
+    THEME_COLORS_4,
+    build_hierarchical_adjacency_matrix,
+    clean_whatsapp_text,
+)
 from wa_analyzer.features.embeddings import enrich_sessions_with_embeddings
+from wa_analyzer.features.stylometry import (
+    FEATURE_NAMES_13,
+    build_chunks_dataframe,
+    extract_style_features,
+)
 from wa_analyzer.features.text_regex import (
     EmojiOnly,
     ReplyWordCountFeature,
@@ -17,15 +28,22 @@ from wa_analyzer.features.time_bursts import (
 )
 
 __all__ = [
+    "CONCEPTS_16",
     "DayPart",
     "EmojiOnly",
+    "FEATURE_NAMES_13",
     "PeriodFeature",
     "ReplyWordCountFeature",
     "ResponseTimeFeature",
     "SessionizeFeature",
+    "THEME_COLORS_4",
     "ThematicRegexFeature",
+    "build_chunks_dataframe",
+    "build_hierarchical_adjacency_matrix",
     "build_sessions_dataframe",
     "classify_theme",
+    "clean_whatsapp_text",
     "enrich_sessions_with_embeddings",
+    "extract_style_features",
     "fit_session_threshold",
 ]

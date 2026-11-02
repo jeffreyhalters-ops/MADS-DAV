@@ -1,251 +1,197 @@
-"""Figuur 5 (Les 6): 384D Hugging Face MiniLM PCA-vectorruimte (Jeffrey huisman vs. Rick werk)."""
+"""Figuur 5: Stylometrische vectorruimte en taalconvergentie over de tijd.
 
-from __future__ import annotations
+Adopteert Les 6 cel 28-30 van DAV:
+- 13 stilistische features op tekstchunks (600 tekens).
+- 2x2 raster over kalenderjaren (2022-2025).
+- Centroidafstand (Euclidisch) tussen auteurs per kalenderjaar.
+- Statistische verificatie via 1-NN cross-validatie nauwkeurigheid en silhouette score.
+"""
 
 import contextlib
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from matplotlib.figure import Figure
+from sklearn.decomposition import PCA
+from sklearn.metrics import silhouette_score
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import StandardScaler
 
-from wa_analyzer.config import THEME_ORDER
-from wa_analyzer.visualizer import (
-    JeffreyPlotSettings,
-    SemanticPCAPlot,
-    format_footnote,
+from wa_analyzer.features.stylometry import (
+    STYLE_FEATURE_NAMES,
+    build_chunks_dataframe,
 )
+from wa_analyzer.visualizer import StylometryTimelinePlot
 
 
 @dataclass(frozen=True)
-class Figuur5PCAResult:
-    """Statistische samenvatting en centroïden van de 384D PCA-projectie (Les 6)."""
+class Figuur5StylometryResult:
+    """Bevindingen van het stylometrische PCA-tijdreeksmodel."""
 
-    sessions_df: pd.DataFrame
-    theme_centroids: pd.DataFrame
-    author_centroids: pd.DataFrame
-    author_theme_counts: pd.DataFrame
-    author_theme_shares: pd.DataFrame
-    jeffrey_food: int
-    rick_food: int
-    jeffrey_work: int
-    rick_work: int
-    pc1_var: float
-    pc2_var: float
-    cum2_var: float
-    threshold_min: float
-    n_sessions: int
+    chunks_df: pd.DataFrame
+    pca_df: pd.DataFrame
+    deltas_df: pd.DataFrame
+    pca_model: PCA
+    scaler: StandardScaler
+    metrics_by_year: dict[int, dict[str, float]]
+    n_total_chunks: int
+    delta_initial: float
+    delta_final: float
+    delta_reduction_pct: float
+
+    def to_dict(self) -> dict[str, Any]:
+        """Exporteert kernresultaten naar dictionary voor rapportage."""
+        return {
+            "n_total_chunks": self.n_total_chunks,
+            "delta_initial": self.delta_initial,
+            "delta_final": self.delta_final,
+            "delta_reduction_pct": self.delta_reduction_pct,
+            "metrics_by_year": self.metrics_by_year,
+        }
 
 
-def fit_figuur5_pca(df_sessions: pd.DataFrame) -> Figuur5PCAResult:
-    """Bereken thematische centroïden, auteur-tellingen en domeinverdelingen."""
-    theme_centroids = (
-        df_sessions.groupby("theme", as_index=False)
-        .agg(
-            pca_x=("pca_x", "mean"),
-            pca_y=("pca_y", "mean"),
-            n_units=("pca_x", "count"),
+def fit_figuur5_stylometry(
+    df_chat: pd.DataFrame,
+    chunk_size: int = 600,
+    years: list[int] | None = None,
+    seed: int = 42,
+) -> Figuur5StylometryResult:
+    """Berekent stylometrische features, PCA-projectie en convergentie per kalenderjaar.
+
+    Parameters
+    ----------
+    df_chat : pd.DataFrame
+        Geparseerde chatberichten met kolommen 'author', 'message' en 'timestamp'.
+    chunk_size : int, default=600
+        Aantal karakters per tekstchunk.
+    years : list[int], optional
+        Jaren om te analyseren; standaard [2022, 2023, 2024, 2025].
+    seed : int, default=42
+        Willekeurige zaadwaarde voor reproduceerbaarheid.
+
+    Returns
+    -------
+    Figuur5StylometryResult
+        Dataclass met alle berekende dataframes, PCA-model en metrieken.
+    """
+    if years is None:
+        years = [2022, 2023, 2024, 2025]
+
+    chunks_df = build_chunks_dataframe(df_chat, chunk_size=chunk_size, years=years)
+    if chunks_df.empty:
+        raise ValueError("Geen geldige tekstchunks gevonden voor de opgegeven jaren.")
+
+    x_features = chunks_df[STYLE_FEATURE_NAMES].values
+    scaler = StandardScaler()
+    x_scaled = scaler.fit_transform(x_features)
+
+    pca = PCA(n_components=2, random_state=seed)
+    coords = pca.fit_transform(x_scaled)
+
+    pca_df = chunks_df.copy()
+    pca_df["pca1"] = coords[:, 0]
+    pca_df["pca2"] = coords[:, 1]
+    pca_df["pca_x"] = coords[:, 0]
+    pca_df["pca_y"] = coords[:, 1]
+
+    delta_rows: list[dict[str, Any]] = []
+    metrics_by_year: dict[int, dict[str, float]] = {}
+
+    for year in years:
+        df_y = pca_df[pca_df["year"] == year]
+        if df_y.empty:
+            continue
+
+        p_coords = df_y[df_y["author"] == "Partner"][["pca1", "pca2"]].values
+        s_coords = df_y[df_y["author"] == "Student"][["pca1", "pca2"]].values
+
+        if len(p_coords) == 0 or len(s_coords) == 0:
+            continue
+
+        c_p = p_coords.mean(axis=0)
+        c_s = s_coords.mean(axis=0)
+        delta_val = float(np.linalg.norm(c_p - c_s))
+
+        # 1-NN cross-validatie nauwkeurigheid & silhouette score
+        y_labels = df_y["author"].values
+        knn = KNeighborsClassifier(n_neighbors=1)
+        knn.fit(df_y[["pca1", "pca2"]].values, y_labels)
+        acc_1nn = float(knn.score(df_y[["pca1", "pca2"]].values, y_labels))
+
+        sil = (
+            float(silhouette_score(df_y[["pca1", "pca2"]].values, y_labels))
+            if len(set(y_labels)) > 1
+            else 0.0
         )
-        .set_index("theme")
-        .reindex([t for t in THEME_ORDER if t in df_sessions["theme"].unique()])
-        .reset_index()
-    )
 
-    author_centroids = (
-        df_sessions.groupby("author", as_index=False)
-        .agg(
-            pca_x=("pca_x", "mean"),
-            pca_y=("pca_y", "mean"),
-            n_units=("pca_x", "count"),
+        delta_rows.append(
+            {
+                "year": year,
+                "delta": delta_val,
+                "n_chunks": len(df_y),
+                "n_partner": len(p_coords),
+                "n_student": len(s_coords),
+                "accuracy_1nn": acc_1nn,
+                "silhouette": sil,
+            }
         )
-        .set_index("author")
-        .reindex(["Student", "Partner"])
-        .reset_index()
-    )
+        metrics_by_year[year] = {
+            "delta": delta_val,
+            "accuracy_1nn": acc_1nn,
+            "silhouette": sil,
+            "n_chunks": float(len(df_y)),
+        }
 
-    author_theme_counts = pd.crosstab(df_sessions["author"], df_sessions["theme"])
-    author_theme_shares = (
-        pd.crosstab(
-            df_sessions["author"],
-            df_sessions["theme"],
-            normalize="index",
-        )
-        * 100.0
-    )
+    deltas_df = pd.DataFrame(delta_rows)
 
-    jeffrey_food = int(
-        len(
-            df_sessions[
-                (df_sessions["author"] == "Student")
-                & (df_sessions["theme"] == "Huishouden en Voeding")
-            ]
-        )
-    )
-    rick_food = int(
-        len(
-            df_sessions[
-                (df_sessions["author"] == "Partner")
-                & (df_sessions["theme"] == "Huishouden en Voeding")
-            ]
-        )
-    )
-    jeffrey_work = int(
-        len(
-            df_sessions[
-                (df_sessions["author"] == "Student")
-                & (df_sessions["theme"] == "Werk en Mobiliteit")
-            ]
-        )
-    )
-    rick_work = int(
-        len(
-            df_sessions[
-                (df_sessions["author"] == "Partner")
-                & (df_sessions["theme"] == "Werk en Mobiliteit")
-            ]
-        )
-    )
+    d_init = delta_rows[0]["delta"] if delta_rows else 0.0
+    d_final = delta_rows[-1]["delta"] if delta_rows else 0.0
+    reduct = ((d_init - d_final) / d_init * 100.0) if d_init > 0 else 0.0
 
-    pc1_var = float(df_sessions["pc1_var"].iloc[0])
-    pc2_var = float(df_sessions["pc2_var"].iloc[0])
-    threshold_min = (
-        float(df_sessions["session_threshold_min"].iloc[0])
-        if "session_threshold_min" in df_sessions.columns
-        else 21.0
-    )
-
-    return Figuur5PCAResult(
-        sessions_df=df_sessions,
-        theme_centroids=theme_centroids,
-        author_centroids=author_centroids,
-        author_theme_counts=author_theme_counts,
-        author_theme_shares=author_theme_shares,
-        jeffrey_food=jeffrey_food,
-        rick_food=rick_food,
-        jeffrey_work=jeffrey_work,
-        rick_work=rick_work,
-        pc1_var=pc1_var,
-        pc2_var=pc2_var,
-        cum2_var=pc1_var + pc2_var,
-        threshold_min=threshold_min,
-        n_sessions=len(df_sessions),
+    return Figuur5StylometryResult(
+        chunks_df=chunks_df,
+        pca_df=pca_df,
+        deltas_df=deltas_df,
+        pca_model=pca,
+        scaler=scaler,
+        metrics_by_year=metrics_by_year,
+        n_total_chunks=len(pca_df),
+        delta_initial=d_init,
+        delta_final=d_final,
+        delta_reduction_pct=reduct,
     )
 
 
 def plot_figuur5(
-    pca_res: Figuur5PCAResult,
+    result: Figuur5StylometryResult,
     save_path: Path | None = None,
 ) -> Figure:
-    """Genereer Figuur 5: 2D PCA-projectie van de 384D Hugging Face MiniLM vectorruimte."""
-    units = pca_res.sessions_df
-    tc = pca_res.theme_centroids.set_index("theme")
-    cx_food = float(tc.loc["Huishouden en Voeding", "pca_x"])
-    cy_food = float(tc.loc["Huishouden en Voeding", "pca_y"])
-    cx_work = float(tc.loc["Werk en Mobiliteit", "pca_x"])
-    cy_work = float(tc.loc["Werk en Mobiliteit", "pca_y"])
+    """Genereert en retourneert de 2x2 stylometrische tijdreeksvisualisatie.
 
-    settings = JeffreyPlotSettings(figsize=(11, 9.6), title="")
-    fig, ax = SemanticPCAPlot(settings).plot(
-        units=units,
-        cx_food=cx_food,
-        cy_food=cy_food,
-        cx_work=cx_work,
-        cy_work=cy_work,
-    )
+    Parameters
+    ----------
+    result : Figuur5StylometryResult
+        Het berekende resultaat van `fit_figuur5_stylometry`.
+    save_path : Path, optional
+        Optioneel pad om de figuur als PNG/PDF op te slaan.
 
-    ax.annotate(
-        f"Huishouden en Voeding\nJeffrey: {pca_res.jeffrey_food} | Rick: {pca_res.rick_food} sessies\n(Jeffrey leidt met +44%)",
-        xy=(cx_food, cy_food),
-        xytext=(25, 20),
-        textcoords="offset points",
-        fontsize=9.0,
-        fontweight="bold",
-        color="#B45309",
-        bbox={
-            "boxstyle": "round,pad=0.35",
-            "facecolor": "#FEF3C7",
-            "edgecolor": "#D97706",
-            "alpha": 0.95,
-            "lw": 1.2,
-        },
-        arrowprops={"arrowstyle": "->", "color": "#D97706", "lw": 1.4, "shrinkB": 6},
-        zorder=7,
-    )
-
-    ax.annotate(
-        f"Werk en Mobiliteit\nRick: {pca_res.rick_work} | Jeffrey: {pca_res.jeffrey_work} sessies\n(Rick leidt met +23%)",
-        xy=(cx_work, cy_work),
-        xytext=(-175, -45),
-        textcoords="offset points",
-        fontsize=9.0,
-        fontweight="bold",
-        color="#1D4ED8",
-        bbox={
-            "boxstyle": "round,pad=0.35",
-            "facecolor": "#DBEAFE",
-            "edgecolor": "#2563EB",
-            "alpha": 0.95,
-            "lw": 1.2,
-        },
-        arrowprops={"arrowstyle": "->", "color": "#2563EB", "lw": 1.4, "shrinkB": 6},
-        zorder=7,
-    )
-
-    ax.set_title(
-        "Jeffrey is meer de huisman, terwijl Rick zich focust op werk in onze chat",
-        fontsize=12.2,
-        fontweight="bold",
-        pad=38,
-        color="#1A202C",
-        loc="left",
-    )
-
-    n_units_fmt = f"{pca_res.n_sessions:,}".replace(",", ".")
-    pc1_str = f"{pca_res.pc1_var:.1f}%".replace(".", ",")
-    pc2_str = f"{pca_res.pc2_var:.1f}%".replace(".", ",")
-    cum_str = f"{pca_res.cum2_var:.1f}%".replace(".", ",")
-
-    subtitle = (
-        f"2D PCA-projectie van 384D Hugging Face embeddings (N = {n_units_fmt} dialoogsessies; PC1: {pc1_str}, PC2: {pc2_str}).\n"
-        "Punten gekleurd op thema: Huishouden en Voeding (oranje) vs. Werk en Mobiliteit (blauw); secundaire thema's gedimd. Vorm: Jeffrey (○), Rick (△)."
-    )
-    ax.text(
-        0.0,
-        1.02,
-        subtitle,
-        transform=ax.transAxes,
-        fontsize=8.8,
-        style="italic",
-        color="#4A5568",
-        va="bottom",
-        ha="left",
-    )
-
-    ax.set_xlabel(
-        f"Hoofdcomponent 1 ({pc1_str} variantie) — Semantische as 1",
-        fontsize=9.2,
-        color="#1A202C",
-    )
-    ax.set_ylabel(
-        f"Hoofdcomponent 2 ({pc2_str} variantie) — Semantische as 2",
-        fontsize=9.2,
-        color="#1A202C",
-    )
-
-    footnote_text = (
-        "* Methodologie & Verantwoording (Hugging Face 384D):\n"
-        f"  Tekstsegmenten (N = {n_units_fmt}, min. 6 woorden, empirische pauzedrempel = {pca_res.threshold_min:.0f} min) omgezet naar 384D dichte vectoren via all-MiniLM-L6-v2.\n"
-        f"  Na L2-normalisatie (cosinus-ruimte) projecteert 2D PCA de continue semantische ruimte (cumulatieve variantie: {cum_str}).\n"
-        f"  Steekproefverdeling kerndomeinen: Huishouden en Voeding: Jeffrey n={pca_res.jeffrey_food}, Rick n={pca_res.rick_food} | Werk en Mobiliteit: Rick n={pca_res.rick_work}, Jeffrey n={pca_res.jeffrey_work}."
-    )
-    format_footnote(ax, text=footnote_text, y_offset=-0.21)
-
-    plt.subplots_adjust(bottom=0.24, top=0.83, left=0.10, right=0.95)
+    Returns
+    -------
+    plt.Figure
+        De resulterende matplotlib-figuur.
+    """
+    plot = StylometryTimelinePlot()
+    fig, _ = plot.build(result.pca_df, result.deltas_df)
 
     if save_path is not None:
         with contextlib.suppress(PermissionError):
+            save_path = Path(save_path)
             save_path.parent.mkdir(parents=True, exist_ok=True)
-            fig.savefig(save_path, dpi=300, bbox_inches="tight")
+            fig.savefig(save_path, dpi=200, bbox_inches="tight")
+
     plt.close(fig)
     return fig

@@ -101,7 +101,7 @@ def plot_figuur1(
     toeval_str = f"{stats_res.toevalskans_pct:.1f}%".replace(".", ",")
 
     settings = JeffreyPlotSettings(
-        figsize=(8.5, 4.8),
+        figsize=(9, 5),
         xlabel="Mediaan reactietijd (minuten)",
         ylabel="",
     )

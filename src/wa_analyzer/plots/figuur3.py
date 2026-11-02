@@ -130,7 +130,7 @@ def plot_figuur3(
     save_path: Path | None = None,
 ) -> Figure:
     """Genereer Figuur 3: Kansdichtheid & Negatief-Binomiale fit voor en tijdens Thailand."""
-    settings = JeffreyPlotSettings(figsize=(11.8, 6.0), title="")
+    settings = JeffreyPlotSettings(figsize=(12, 6), title="")
     bins = np.arange(0, 108, 3)
     x_support = np.arange(0, 106)
     y_base = dist_res.fit_base.frozen_dist.pmf(x_support)

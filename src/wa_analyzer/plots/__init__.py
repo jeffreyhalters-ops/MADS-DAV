@@ -16,12 +16,22 @@ from wa_analyzer.plots.figuur4 import (
     fit_figuur4_piecewise,
     plot_figuur4,
 )
-from wa_analyzer.plots.figuur5 import Figuur5PCAResult, fit_figuur5_pca, plot_figuur5
+from wa_analyzer.plots.figuur5 import (
+    Figuur5StylometryResult,
+    fit_figuur5_stylometry,
+    plot_figuur5,
+)
 from wa_analyzer.plots.figuur6 import (
-    Figuur6NetworkResult,
-    fit_figuur6_network,
+    Figuur6MatrixResult,
+    fit_figuur6_matrix,
     plot_figuur6,
 )
+
+# Backwards compatibility aliases
+Figuur5PCAResult = Figuur5StylometryResult
+fit_figuur5_pca = fit_figuur5_stylometry
+Figuur6NetworkResult = Figuur6MatrixResult
+fit_figuur6_network = fit_figuur6_matrix
 
 __all__ = [
     "Figuur1Stats",
@@ -29,12 +39,16 @@ __all__ = [
     "Figuur3DistributionResult",
     "Figuur4PiecewiseResult",
     "Figuur5PCAResult",
+    "Figuur5StylometryResult",
+    "Figuur6MatrixResult",
     "Figuur6NetworkResult",
     "fit_figuur1_stats",
     "fit_figuur2_bootstrap",
     "fit_figuur3_distributions",
     "fit_figuur4_piecewise",
     "fit_figuur5_pca",
+    "fit_figuur5_stylometry",
+    "fit_figuur6_matrix",
     "fit_figuur6_network",
     "plot_figuur1",
     "plot_figuur2",

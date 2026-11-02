@@ -162,7 +162,7 @@ def plot_figuur4(
     save_path: Path | None = None,
 ) -> Figure:
     """Genereer Figuur 4: 2-fasen stuksgewijze regressie van woordlengte vs. reactietijd."""
-    settings = JeffreyPlotSettings(figsize=(11.0, 6.0), title="")
+    settings = JeffreyPlotSettings(figsize=(11, 6), title="")
 
     fig, ax = PiecewiseRegPlot(settings).plot(
         x_grid=model_res.x_grid,

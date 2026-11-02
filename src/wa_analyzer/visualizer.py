@@ -32,7 +32,7 @@ class JeffreyPlotSettings(PlotSettings):
     dark_text: str = "#1A202C"  # Donker antraciet voor titels
     muted_text: str = "#718096"  # Gedimd grijs voor voetnoten en ticks
     line_color: str = "#CBD5E0"  # Rustige as- en gridlijnen
-    figsize: tuple[int | float, int | float] = (9, 5)  # type: ignore[assignment]
+    figsize: tuple[int, int] = (9, 5)
 
 
 def apply_dav_theme(ax: Axes | None = None) -> Axes | None:
@@ -479,87 +479,48 @@ class SemanticPCAPlot(BasePlot):
             raise ValueError("create_figure() must run before build()")
         apply_dav_theme(self.ax)
 
-        self.ax.scatter(
-            units.loc[units["theme"] == "Overig", "pca_x"],
-            units.loc[units["theme"] == "Overig", "pca_y"],
-            color="#CBD5E1",
-            alpha=0.18,
-            s=16,
-            edgecolors="none",
-            zorder=2,
-        )
-        self.ax.scatter(
-            units.loc[units["theme"] == "Huisdieren", "pca_x"],
-            units.loc[units["theme"] == "Huisdieren", "pca_y"],
-            color="#94A3B8",
-            alpha=0.25,
-            s=20,
-            edgecolors="none",
-            zorder=2,
-        )
-        self.ax.scatter(
-            units.loc[units["theme"] == "Zorg & Familie", "pca_x"],
-            units.loc[units["theme"] == "Zorg & Familie", "pca_y"],
-            color="#94A3B8",
-            alpha=0.25,
-            s=20,
-            edgecolors="none",
-            zorder=2,
-        )
+        # Contextuele achtergrondthema's (gedimd)
+        bg_styles: dict[str, tuple[str, float, int]] = {
+            "Overig": ("#CBD5E1", 0.18, 16),
+            "Huisdieren": ("#94A3B8", 0.25, 20),
+            "Zorg & Familie": ("#94A3B8", 0.25, 20),
+        }
+        for theme_name, (color, alpha, s) in bg_styles.items():
+            pts = units[units["theme"] == theme_name]
+            self.ax.scatter(
+                pts["pca_x"],
+                pts["pca_y"],
+                color=color,
+                alpha=alpha,
+                s=s,
+                edgecolors="none",
+                zorder=2,
+            )
 
-        food_jeffrey = units[
-            (units["theme"] == "Huishouden en Voeding") & (units["author"] == "Student")
-        ]
-        food_rick = units[
-            (units["theme"] == "Huishouden en Voeding") & (units["author"] == "Partner")
-        ]
-        self.ax.scatter(
-            food_jeffrey["pca_x"],
-            food_jeffrey["pca_y"],
-            marker="o",
-            color="#D97706",
-            alpha=0.35,
-            s=28,
-            edgecolors="none",
-            zorder=3,
-        )
-        self.ax.scatter(
-            food_rick["pca_x"],
-            food_rick["pca_y"],
-            marker="^",
-            color="#D97706",
-            alpha=0.35,
-            s=30,
-            edgecolors="none",
-            zorder=3,
-        )
-
-        work_jeffrey = units[
-            (units["theme"] == "Werk en Mobiliteit") & (units["author"] == "Student")
-        ]
-        work_rick = units[
-            (units["theme"] == "Werk en Mobiliteit") & (units["author"] == "Partner")
-        ]
-        self.ax.scatter(
-            work_jeffrey["pca_x"],
-            work_jeffrey["pca_y"],
-            marker="o",
-            color="#2563EB",
-            alpha=0.35,
-            s=28,
-            edgecolors="none",
-            zorder=3,
-        )
-        self.ax.scatter(
-            work_rick["pca_x"],
-            work_rick["pca_y"],
-            marker="^",
-            color="#2563EB",
-            alpha=0.35,
-            s=30,
-            edgecolors="none",
-            zorder=3,
-        )
+        # Focus-kernthema's per auteur (oranje voor huishouden, blauw voor werk)
+        theme_colors: dict[str, str] = {
+            "Huishouden en Voeding": "#D97706",
+            "Werk en Mobiliteit": "#2563EB",
+        }
+        author_markers: dict[str, tuple[str, int]] = {
+            "Student": ("o", 28),
+            "Partner": ("^", 30),
+        }
+        for theme_name, t_color in theme_colors.items():
+            for author_name, (marker, size) in author_markers.items():
+                pts = units[
+                    (units["theme"] == theme_name) & (units["author"] == author_name)
+                ]
+                self.ax.scatter(
+                    pts["pca_x"],
+                    pts["pca_y"],
+                    marker=marker,
+                    color=t_color,
+                    alpha=0.35,
+                    s=size,
+                    edgecolors="none",
+                    zorder=3,
+                )
 
         self.ax.scatter(
             cx_food,
@@ -660,6 +621,387 @@ class TopicNetworkPlot(BasePlot):
         return self.fig, self.ax
 
 
+class StylometryTimelinePlot(BasePlot):
+    """2x2 visualisatie van de 2D PCA schrijfstijl-vectorruimte per kalenderjaar via BasePlot."""
+
+    def __init__(
+        self,
+        settings: PlotSettings | None = None,
+        n_plots: int | None = 4,
+    ) -> None:
+        if settings is None:
+            settings = JeffreyPlotSettings(figsize=(12, 10))
+        super().__init__(settings=settings, n_plots=n_plots)
+
+    def build(
+        self,
+        df: pd.DataFrame,
+        deltas: pd.DataFrame | dict[int, float] | None = None,
+        years: list[int] | None = None,
+        *_args: object,
+        **_kwargs: object,
+    ) -> tuple[Figure, Axes]:
+        active_years = years if years is not None else [2022, 2023, 2024, 2025]
+        self.fig, axes_list = self.create_figure(n_plots=len(active_years))
+        if self.fig is None or self.ax is None:
+            raise ValueError("create_figure() must run before build()")
+
+        deltas_dict: dict[int, float] = {}
+        if isinstance(deltas, pd.DataFrame):
+            deltas_dict = dict(
+                zip(deltas["year"].astype(int), deltas["delta"].astype(float))
+            )
+        elif isinstance(deltas, dict):
+            deltas_dict = deltas
+
+        self.fig.set_layout_engine(None)
+        self.fig.subplots_adjust(
+            top=0.84, bottom=0.17, left=0.10, right=0.95, hspace=0.28, wspace=0.16
+        )
+
+        for i, yr in enumerate(active_years):
+            ax = axes_list[i]
+            apply_dav_theme(ax)
+            sub = df[df["year"] == yr]
+
+            # Rick (Partner): Leisteengrijs
+            p_pts = sub[sub["author"] == "Partner"]
+            ax.scatter(
+                p_pts["pca_x"],
+                p_pts["pca_y"],
+                color="#94A3B8",
+                alpha=0.55,
+                s=28,
+                label="Rick (Partner)",
+                zorder=2,
+            )
+
+            # Jeffrey (Student): Terracotta oranje
+            s_pts = sub[sub["author"] == "Student"]
+            ax.scatter(
+                s_pts["pca_x"],
+                s_pts["pca_y"],
+                color="#C2410C",
+                alpha=0.75,
+                s=30,
+                label="Jeffrey (Student)",
+                zorder=3,
+            )
+
+            # Zwaartepunten & Stijlafstand (Δ)
+            cx_j, cy_j = float(s_pts["pca_x"].mean()), float(s_pts["pca_y"].mean())
+            cx_r, cy_r = float(p_pts["pca_x"].mean()), float(p_pts["pca_y"].mean())
+            dist = (
+                deltas_dict[yr]
+                if yr in deltas_dict
+                else float(np.sqrt((cx_j - cx_r) ** 2 + (cy_j - cy_r) ** 2))
+            )
+
+            # Verbindingslijn tussen zwaartepunten
+            ax.plot(
+                [cx_j, cx_r],
+                [cy_j, cy_r],
+                color="#64748B",
+                linestyle="--",
+                linewidth=1.5,
+                zorder=4,
+            )
+
+            # Zwaartepunt Rick
+            ax.scatter(
+                [cx_r],
+                [cy_r],
+                s=110,
+                facecolor="#FFFFFF",
+                edgecolor="#64748B",
+                linewidth=2.2,
+                zorder=5,
+            )
+            ax.scatter([cx_r], [cy_r], s=30, color="#64748B", zorder=6)
+
+            # Zwaartepunt Jeffrey
+            ax.scatter(
+                [cx_j],
+                [cy_j],
+                s=110,
+                facecolor="#FFFFFF",
+                edgecolor="#C2410C",
+                linewidth=2.2,
+                zorder=5,
+            )
+            ax.scatter([cx_j], [cy_j], s=30, color="#C2410C", zorder=6)
+
+            # Jaarkopje met stijlafstand
+            dist_str = f"{dist:.2f}".replace(".", ",")
+            ax.set_title(
+                f"{yr}  (Stijlafstand Δ = {dist_str})",
+                fontsize=11.5,
+                fontweight="bold",
+                color="#1A202C",
+                pad=10,
+            )
+            ax.set_xlim(-3.2, 6.2)
+            ax.set_ylim(-4.2, 4.2)
+
+            if i == 0:
+                ax.text(
+                    cx_j + 0.35,
+                    cy_j - 0.45,
+                    "Jeffrey (Student)",
+                    fontsize=8.8,
+                    fontweight="bold",
+                    color="#C2410C",
+                    zorder=7,
+                )
+                ax.text(
+                    cx_r - 0.35,
+                    cy_r + 0.45,
+                    "Rick (Partner)",
+                    fontsize=8.8,
+                    fontweight="bold",
+                    color="#64748B",
+                    ha="right",
+                    zorder=7,
+                )
+                ax.text(
+                    -2.9,
+                    3.8,
+                    "▲ Boven: Punten & smileys",
+                    fontsize=7.8,
+                    fontweight="bold",
+                    color="#64748B",
+                    va="top",
+                )
+                ax.text(
+                    -2.9,
+                    -3.8,
+                    "▼ Onder: Veel komma's",
+                    fontsize=7.8,
+                    fontweight="bold",
+                    color="#C2410C",
+                    va="bottom",
+                )
+
+        return self.fig, self.ax
+
+
+class ConceptMatrixPlot(BasePlot):
+    """Hiërarchische 16x16 concept-adjacency matrix met themakaders via BasePlot."""
+
+    def __init__(
+        self,
+        settings: PlotSettings | None = None,
+        n_plots: int | None = 1,
+    ) -> None:
+        if settings is None:
+            settings = JeffreyPlotSettings(figsize=(11, 10))
+        super().__init__(settings=settings, n_plots=n_plots)
+
+    def build(
+        self,
+        matrix_df: pd.DataFrame,
+        summary_df: pd.DataFrame | None = None,
+        *_args: object,
+        **_kwargs: object,
+    ) -> tuple[Figure, Axes]:
+        if self.fig is None or self.ax is None:
+            self.create_figure()
+        if self.fig is None or self.ax is None:
+            raise ValueError("create_figure() must initialize self.fig and self.ax")
+
+        import matplotlib.colors as mcolors
+        from wa_analyzer.features.concept_graph import CONCEPTS_16, THEME_COLORS_4
+
+        self.fig.patch.set_facecolor("white")
+        self.ax.set_facecolor("white")
+
+        ordered_concepts = list(matrix_df.columns)
+        adj_clean = matrix_df.values
+        n_c = len(ordered_concepts)
+
+        theme_slices: dict[str, tuple[int, int]] = {}
+        curr = 0
+        for theme, subdict in CONCEPTS_16.items():
+            start = curr
+            curr += len(subdict)
+            theme_slices[theme] = (start, curr)
+
+        norm = mcolors.PowerNorm(gamma=0.42, vmin=3, vmax=130)
+        cmap = sns.color_palette("Blues", as_cmap=True)
+
+        im = self.ax.imshow(adj_clean, cmap=cmap, norm=norm, interpolation="nearest")
+
+        for i in range(n_c):
+            for j in range(n_c):
+                val = int(adj_clean[i, j])
+                if i == j:
+                    self.ax.text(
+                        j,
+                        i,
+                        "—",
+                        ha="center",
+                        va="center",
+                        color="#CBD5E1",
+                        fontsize=10,
+                        fontweight="bold",
+                    )
+                elif val >= 3:
+                    text_color = "white" if val > 35 else "#0F172A"
+                    self.ax.text(
+                        j,
+                        i,
+                        str(val),
+                        ha="center",
+                        va="center",
+                        color=text_color,
+                        fontsize=8.6,
+                        fontweight="bold",
+                    )
+
+        # Rasterlijnen tussen domeinen
+        for idx in [4, 8, 12]:
+            self.ax.axhline(idx - 0.5, color="#334155", lw=1.6, zorder=3)
+            self.ax.axvline(idx - 0.5, color="#334155", lw=1.6, zorder=3)
+
+        # Themakaders
+        for theme, (start, end) in theme_slices.items():
+            col = THEME_COLORS_4.get(theme, "#334155")
+            rect = plt.Rectangle(
+                (start - 0.5, start - 0.5),
+                end - start,
+                end - start,
+                fill=False,
+                edgecolor=col,
+                linewidth=3.2,
+                linestyle="-",
+                zorder=4,
+            )
+            self.ax.add_patch(rect)
+
+        self.ax.set_xticks(range(n_c))
+        self.ax.set_yticks(range(n_c))
+        self.ax.set_xticklabels(
+            ordered_concepts,
+            rotation=45,
+            ha="left",
+            fontsize=9.2,
+            color="#1E293B",
+            fontweight="bold",
+        )
+        self.ax.set_yticklabels(
+            ordered_concepts, fontsize=9.2, color="#1E293B", fontweight="bold"
+        )
+        self.ax.xaxis.tick_top()
+        self.ax.tick_params(axis="both", which="both", length=0, pad=6)
+
+        # Subklassen-haken boven X-as en rechts van Y-as
+        for theme, (start, end) in theme_slices.items():
+            col = THEME_COLORS_4.get(theme, "#334155")
+            x_mid = (start + end - 1) / 2.0
+            x_left = start - 0.45
+            x_right = end - 0.55
+            bracket_y = -1.45
+
+            self.ax.plot(
+                [x_left, x_right],
+                [bracket_y, bracket_y],
+                color=col,
+                lw=3.8,
+                clip_on=False,
+                solid_capstyle="round",
+            )
+            self.ax.text(
+                x_mid,
+                bracket_y - 0.35,
+                theme,
+                ha="center",
+                va="bottom",
+                fontsize=9.6,
+                fontweight="bold",
+                color=col,
+                clip_on=False,
+            )
+
+            y_mid = (start + end - 1) / 2.0
+            y_top = start - 0.45
+            y_bottom = end - 0.55
+            bracket_x = n_c + 0.35
+            self.ax.plot(
+                [bracket_x, bracket_x],
+                [y_top, y_bottom],
+                color=col,
+                lw=3.8,
+                clip_on=False,
+                solid_capstyle="round",
+            )
+            self.ax.text(
+                bracket_x + 0.35,
+                y_mid,
+                theme,
+                ha="left",
+                va="center",
+                fontsize=9.6,
+                fontweight="bold",
+                color=col,
+                rotation=270,
+                clip_on=False,
+            )
+
+        # Main title, subtitle en footnote conform Les 7
+        main_title = "Interactiedichtheid over 4 themagebieden: Thuis, eten en de honden vormen de basis voor de meeste gespreksonderwerpen"
+        subtitle = "Hiërarchische burenmatrix van 16 kernconcepten (4×4 modulair, Δt = 10 min, interacties ≥ 3). Kaders tonen thema-clusters; getallen tonen interactiekracht."
+
+        self.ax.text(
+            0.0,
+            1.10,
+            main_title,
+            transform=self.ax.transAxes,
+            fontsize=11.6,
+            fontweight="bold",
+            color="#1A202C",
+            va="bottom",
+            ha="left",
+        )
+        self.ax.text(
+            0.0,
+            1.055,
+            subtitle,
+            transform=self.ax.transAxes,
+            fontsize=9.0,
+            fontweight="normal",
+            color="#475569",
+            va="bottom",
+            ha="left",
+        )
+
+        footnote_text = (
+            "* Toelichting & Statistische verantwoording (Les 7.1–7.3): Getallen tonen het interactiegewicht binnen Δt = 10 min (dubbel gewogen bij dialoog).\n"
+            "  Incidentele ruis (1 of 2 interacties in 4 jaar) is gefilterd; '—' sluit zelf-lussen uit. Op auteursniveau is een 1-op-1 chat triviaal (N=2, E=1), vandaar de overstap naar concepten.\n"
+            "  Statistische toetsing: De 4 themagroepen zijn deductief gekozen (a-priori model); de interne dichtheid is significant sterker dan toeval\n"
+            "  (Q = 0,065, z = +4,92, p < 0,001 t.o.v. 1.000 netwerk-permutaties). Cellen buiten kaders tonen de verwevenheid: 63,9% van het gewicht slaat een brug tussen de domeinen."
+        )
+
+        self.ax.text(
+            0.0,
+            -0.155,
+            footnote_text,
+            transform=self.ax.transAxes,
+            fontsize=7.8,
+            color="#475569",
+            va="top",
+            ha="left",
+            linespacing=1.35,
+        )
+
+        cbar = self.fig.colorbar(im, ax=self.ax, fraction=0.028, pad=0.08, shrink=0.7)
+        cbar.set_label(
+            "Interactiegewicht binnen 10 min (≥ 3)", fontsize=8.5, color="#475569"
+        )
+        cbar.ax.tick_params(labelsize=8, colors="#475569")
+
+        return self.fig, self.ax
+
+
 class BarPlot(BasePlot):
     """Staafdiagram gebouwd op `goad_toolkit.visualizer.BasePlot`."""
 
@@ -670,7 +1012,9 @@ class BarPlot(BasePlot):
         y: str,
         *_args: object,
         **kwargs: object,
-    ) -> tuple[Figure | None, Axes | None]:
+    ) -> tuple[Figure, Axes]:
+        if self.fig is None or self.ax is None:
+            raise ValueError("create_figure() must run before build()")
         sns.barplot(data=data, x=x, y=y, ax=self.ax, **kwargs)  # type: ignore[arg-type]
         return self.fig, self.ax
 
@@ -688,7 +1032,9 @@ class BarPlotWithError(BasePlot):
         hue_order: list[str],
         *_args: object,
         **kwargs: object,
-    ) -> tuple[Figure | None, Axes | None]:
+    ) -> tuple[Figure, Axes]:
+        if self.fig is None or self.ax is None:
+            raise ValueError("create_figure() must run before build()")
         kwargs.setdefault(
             "palette",
             [self.settings.base_color] * (len(hue_order) - 1)
@@ -703,8 +1049,6 @@ class BarPlotWithError(BasePlot):
             ax=self.ax,
             **kwargs,  # type: ignore[arg-type]
         )
-        if self.ax is None:
-            raise ValueError("create_figure() must run before build()")
 
         intervals = data.set_index([x, hue])[error]
         categories = [label.get_text() for label in self.ax.get_xticklabels()]

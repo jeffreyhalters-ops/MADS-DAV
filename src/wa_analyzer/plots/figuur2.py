@@ -154,7 +154,7 @@ def plot_figuur2(
     save_path: Path | None = None,
 ) -> Figure:
     """Genereer Figuur 2: Uur-residu van berichtvolume tijdens Thailand-reis vs. baseline."""
-    settings = JeffreyPlotSettings(figsize=(11.8, 6.0), title="")
+    settings = JeffreyPlotSettings(figsize=(12, 6), title="")
 
     fig, ax = ResidualCurvePlot(settings).plot(
         hours=boot_res.hours,

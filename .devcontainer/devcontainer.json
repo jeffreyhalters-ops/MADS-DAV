@@ -1,0 +1,17 @@
+{
+  "name": "wa-analyzer",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "containerEnv": {
+    "PATH": "${containerEnv:PATH}:/home/vscode/.local/bin:/root/.local/bin"
+  },
+  "postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh && curl -fsSL https://raw.githubusercontent.com/raoulg/atlas/main/install.sh | sh && $HOME/.local/bin/uv sync",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-toolsai.jupyter",
+        "charliermarsh.ruff"
+      ]
+    }
+  }
+}
