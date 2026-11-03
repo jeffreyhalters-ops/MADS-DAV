@@ -12,12 +12,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.figure import Figure
 from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
+from sklearn.model_selection import cross_val_score
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 
@@ -42,6 +42,9 @@ class Figuur5StylometryResult:
     delta_initial: float
     delta_final: float
     delta_reduction_pct: float
+    score_1nn: float
+    silhouette_actual: float
+    silhouette_shuffled: float
 
     def to_dict(self) -> dict[str, Any]:
         """Exporteert kernresultaten naar dictionary voor rapportage."""
@@ -51,7 +54,84 @@ class Figuur5StylometryResult:
             "delta_final": self.delta_final,
             "delta_reduction_pct": self.delta_reduction_pct,
             "metrics_by_year": self.metrics_by_year,
+            "score_1nn": self.score_1nn,
+            "silhouette_actual": self.silhouette_actual,
+            "silhouette_shuffled": self.silhouette_shuffled,
         }
+
+    def print_summary(self) -> None:
+        """Toont de methodologische en statistische verantwoording conform Les 6."""
+        ev1, ev2 = self.pca_model.explained_variance_[:2]
+        var1, var2 = self.pca_model.explained_variance_ratio_[:2]
+        var_total = var1 + var2
+        n_student = int((self.chunks_df["author"] == "Student").sum())
+        n_partner = int((self.chunks_df["author"] == "Partner").sum())
+
+        print(
+            "=== METHODOLOGISCHE & STATISTISCHE VERANTWOORDING (OPDRACHT 5: STIJLOMETRIE) ==="
+        )
+        print(
+            f"Aantal tekstfragmenten (N): {self.n_total_chunks} (100% data-dekking over 2022-2025)"
+        )
+        print(f"- Jeffrey (Student): {n_student} fragmenten (600 tekens elk)")
+        print(f"- Rick (Partner):   {n_partner} fragmenten (600 tekens elk)")
+        print(
+            "Dimensies in vectorruimte: d = 13 objectieve stijlkenmerken (geen data leakage: auteur zit NIET in X)"
+        )
+        print()
+        print("=== PCA VARIANTIE & POLEN ===")
+        print(
+            f"Hoofdcomponent 1 (PC1): verklaart {var1:.1%} variantie (lambda = {ev1:.2f})"
+        )
+        print(
+            f"Hoofdcomponent 2 (PC2): verklaart {var2:.1%} variantie (lambda = {ev2:.2f})"
+        )
+        print(
+            f"Cumulatieve 2D variantie: {var_total:.1%} van alle variatie in schrijfstijl"
+        )
+        print()
+        print("=== FACTORLADINGEN (INTERPRETATIE VAN DE ASSEN - LEERDOEL 6.14) ===")
+        df_loadings = pd.DataFrame(
+            {
+                "Kenmerk": STYLE_FEATURE_NAMES,
+                "PC1": self.pca_model.components_[0],
+                "PC2": self.pca_model.components_[1],
+            }
+        )
+        print("\nTop ladingen PC1 (Horizontale as: Berichtstructuur & Diepgang):")
+        print(
+            df_loadings.sort_values("PC1", ascending=False)[
+                ["Kenmerk", "PC1"]
+            ].to_string(index=False)
+        )
+        print("\nTop ladingen PC2 (Verticale as: Zinsbouw & Expressie):")
+        print(
+            df_loadings.sort_values("PC2", ascending=False)[
+                ["Kenmerk", "PC2"]
+            ].to_string(index=False)
+        )
+        print()
+        print("=== DISCRIMINEREND VERMOGEN & INTERNE STRUCTUUR ===")
+        print(
+            f"1-NN auteur-classificatie (5-fold CV): {self.score_1nn:.1%} (kansniveau: 50.0%)"
+        )
+        print(
+            f"Silhouette-score werkelijk:             {self.silhouette_actual:.3f} (geschudde nulcontrole: {self.silhouette_shuffled:.3f})"
+        )
+        print()
+        print(
+            "=== CONVERGENTIE-ANALYSE OVER DE KALENDERJAREN (DELTA ZWAARTEPUNTEN) ==="
+        )
+        for yr in [2022, 2023, 2024, 2025]:
+            sub = self.pca_df[self.pca_df["year"] == yr]
+            if sub.empty:
+                continue
+            cj = sub[sub["author"] == "Student"][["pca_x", "pca_y"]].mean().to_numpy()
+            cr = sub[sub["author"] == "Partner"][["pca_x", "pca_y"]].mean().to_numpy()
+            d = float(np.linalg.norm(cj - cr))
+            print(
+                f"Jaar {yr}: Delta-afstand = {d:.2f}  |  Jeffrey zwaartepunt: ({cj[0]:+.2f}, {cj[1]:+.2f})  |  Rick: ({cr[0]:+.2f}, {cr[1]:+.2f})"
+            )
 
 
 def fit_figuur5_stylometry(
@@ -152,6 +232,18 @@ def fit_figuur5_stylometry(
     d_final = delta_rows[-1]["delta"] if delta_rows else 0.0
     reduct = ((d_init - d_final) / d_init * 100.0) if d_init > 0 else 0.0
 
+    knn_global = KNeighborsClassifier(n_neighbors=1)
+    score_1nn_global = float(
+        cross_val_score(knn_global, x_scaled, chunks_df["author"], cv=5).mean()
+    )
+    sil_global = float(silhouette_score(x_scaled, chunks_df["author"]))
+    sil_shuffled_global = float(
+        silhouette_score(
+            x_scaled,
+            np.random.default_rng(seed).permutation(chunks_df["author"]),
+        )
+    )
+
     return Figuur5StylometryResult(
         chunks_df=chunks_df,
         pca_df=pca_df,
@@ -163,6 +255,9 @@ def fit_figuur5_stylometry(
         delta_initial=d_init,
         delta_final=d_final,
         delta_reduction_pct=reduct,
+        score_1nn=score_1nn_global,
+        silhouette_actual=sil_global,
+        silhouette_shuffled=sil_shuffled_global,
     )
 
 
@@ -193,5 +288,4 @@ def plot_figuur5(
             save_path.parent.mkdir(parents=True, exist_ok=True)
             fig.savefig(save_path, dpi=200, bbox_inches="tight")
 
-    plt.close(fig)
     return fig

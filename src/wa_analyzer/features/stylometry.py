@@ -7,6 +7,8 @@ import re
 import numpy as np
 import pandas as pd
 
+from wa_analyzer.config import ONLY_MEDIA_PATTERN
+
 FEATURE_NAMES_13: list[str] = [
     "gem_woordlengte",
     "korte_woorden_ratio",
@@ -91,10 +93,11 @@ def build_chunks_dataframe(
         ts = pd.to_datetime(frame["timestamp"])
         frame["year"] = ts.dt.year
 
+    # Mediaberichten worden uit de tekst zelf herkend (één bron van waarheid in
+    # config.py), niet uit een gecachte kolom die verouderd kan zijn.
+    is_media = frame["message"].astype(str).str.contains(ONLY_MEDIA_PATTERN, regex=True)
     valid = frame[
-        frame["year"].isin(active_years)
-        & frame["message"].notna()
-        & ~frame.get("has_only_media", False)
+        frame["year"].isin(active_years) & frame["message"].notna() & ~is_media
     ].sort_values("timestamp")
 
     chunks: list[dict[str, object]] = []

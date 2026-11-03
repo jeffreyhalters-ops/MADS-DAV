@@ -38,10 +38,10 @@ MEDIA_PATTERN: str = (
     r"audio weggelaten|sticker weggelaten|gif weggelaten|"
     r"document weggelaten"
 )
-ONLY_MEDIA_PATTERN: str = (
-    r"^\s*(?:<bijgevoegd:[^>]+>|"
-    r"(?:afbeelding|video|audio|sticker|gif|document) weggelaten)\s*$"
-)
+# Overgenomen uit Les 1.3: een bijlage direct na de "Naam:"-kop van een bericht,
+# eventueel voorafgegaan door onzichtbare tekens zoals \u200e (Left-to-Right mark).
+# Een strikt ^...$-patroon matcht hier nooit, omdat WhatsApp die tekens toevoegt.
+ONLY_MEDIA_PATTERN: str = r":\s*[^a-zA-Z0-9\s]*<bijgevoegd"
 CLEAN_TEXT_PATTERN: str = (
     r"<bijgevoegd:[^>]+>|https?://\S+|www\.\S+|"
     r"(?:afbeelding|video|audio|sticker|gif|document) weggelaten"

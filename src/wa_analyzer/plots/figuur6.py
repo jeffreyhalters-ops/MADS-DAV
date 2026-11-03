@@ -13,7 +13,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -23,7 +22,7 @@ from wa_analyzer.features.concept_graph import (
     CONCEPTS_16,
     build_hierarchical_adjacency_matrix,
 )
-from wa_analyzer.visualizer import ConceptMatrixPlot
+from wa_analyzer.visualizer import ConceptMatrixPlot, ConceptNetworkPlot
 
 
 @dataclass(frozen=True)
@@ -58,6 +57,37 @@ class Figuur6MatrixResult:
             "pct_intra": self.pct_intra,
             "pct_inter": self.pct_inter,
         }
+
+    def print_summary(self) -> None:
+        """Toont de methodologische en statistische verantwoording conform Les 7.3."""
+        print("=" * 65)
+        print("STATISTISCHE VERANTWOORDING CONFORM NOTEBOOK 7.3")
+        print("=" * 65)
+        print(f"Geobserveerde Modularity (Q)   : {self.q_observed:.3f}")
+        print(
+            f"Nulmodel Modularity (mean +/- std) : {self.q_null_mean:.3f} +/- {self.q_null_std:.3f}"
+        )
+        print(
+            f"Z-score ten opzichte van nul    : z = {self.z_score:+.2f} ({self.p_value_str})"
+        )
+        print(
+            f"Intra-thematisch gewicht         : {self.intra_weight} ({self.pct_intra:.1f}%)"
+        )
+        print(
+            f"Inter-thematisch gewicht (brug)  : {self.inter_weight} ({self.pct_inter:.1f}%)"
+        )
+        print("-" * 65)
+        print("Wetenschappelijke conclusie:")
+        print(
+            f"1. De 4 themagroepen zijn deductief gekozen; hun interne dichtheid is "
+            f"statistisch significant sterker dan toeval (z = {self.z_score:+.2f})."
+        )
+        print(
+            "2. Geen geisoleerde silo's: "
+            f"{self.pct_inter:.1f}% van het gewicht slaat "
+            "juist bruggen tussen de leefwerelden."
+        )
+        print("=" * 65)
 
 
 def fit_figuur6_matrix(
@@ -203,8 +233,11 @@ def fit_figuur6_matrix(
 def plot_figuur6(
     result: Figuur6MatrixResult,
     save_path: Path | None = None,
+    min_edge_weight: int = 15,
+    highlight_weight: int = 35,
+    as_matrix: bool = False,
 ) -> Figure:
-    """Genereert en retourneert de 16x16 hiërarchische conceptmatrix visualisatie.
+    """Genereert en retourneert de gewogen concept-netwerkgraaf (of 16x16 matrix) voor Figuur 6.
 
     Parameters
     ----------
@@ -212,14 +245,28 @@ def plot_figuur6(
         Het berekende resultaat van `fit_figuur6_matrix`.
     save_path : Path, optional
         Optioneel pad om de figuur als PNG/PDF op te slaan.
+    min_edge_weight : int, default=15
+        Minimale drempelwaarde voor weergegeven edges in het netwerk (speel met threshold).
+    highlight_weight : int, default=35
+        Gewichtsdrempel waarboven verbindingen als dikke hoofdaders met getalslabel worden getoond.
+    as_matrix : bool, default=False
+        Indien True, toon de oorspronkelijke 16x16 adjacency-matrix in plaats van de netwerkgraaf.
 
     Returns
     -------
     plt.Figure
         De resulterende matplotlib-figuur.
     """
-    plot = ConceptMatrixPlot()
-    fig, _ = plot.build(result.matrix_df, result.summary_df)
+    if as_matrix:
+        matrix_plot = ConceptMatrixPlot()
+        fig, _ = matrix_plot.build(result.matrix_df, result.summary_df)
+    else:
+        net_plot = ConceptNetworkPlot()
+        fig, _ = net_plot.build(
+            result.graph,
+            min_edge_weight=min_edge_weight,
+            highlight_weight=highlight_weight,
+        )
 
     if save_path is not None:
         with contextlib.suppress(PermissionError):
@@ -227,5 +274,4 @@ def plot_figuur6(
             save_path.parent.mkdir(parents=True, exist_ok=True)
             fig.savefig(save_path, dpi=200, bbox_inches="tight")
 
-    plt.close(fig)
     return fig

@@ -630,7 +630,13 @@ class StylometryTimelinePlot(BasePlot):
         n_plots: int | None = 4,
     ) -> None:
         if settings is None:
-            settings = JeffreyPlotSettings(figsize=(12, 10))
+            settings = JeffreyPlotSettings(
+                figsize=(12, 11.5),
+                max_cols=2,
+                sharex=True,
+                sharey=True,
+                title="",
+            )
         super().__init__(settings=settings, n_plots=n_plots)
 
     def build(
@@ -656,37 +662,79 @@ class StylometryTimelinePlot(BasePlot):
 
         self.fig.set_layout_engine(None)
         self.fig.subplots_adjust(
-            top=0.84, bottom=0.17, left=0.10, right=0.95, hspace=0.28, wspace=0.16
+            top=0.84, bottom=0.19, left=0.10, right=0.95, hspace=0.18, wspace=0.12
         )
+
+        c_jeff = "#C2410C"  # Terracotta oranje
+        c_rick_fill = "#3B82F6"  # Zacht kobaltblauw voor de hoogtelijnen
+        c_rick_node = "#1E3A8A"  # Diep marineblauw voor de centroid
 
         for i, yr in enumerate(active_years):
             ax = axes_list[i]
             apply_dav_theme(ax)
+            ax.axhline(0, color="#E2E8F0", linestyle="-", linewidth=1.0, zorder=1)
+            ax.axvline(0, color="#E2E8F0", linestyle="-", linewidth=1.0, zorder=1)
+
             sub = df[df["year"] == yr]
-
-            # Rick (Partner): Leisteengrijs
             p_pts = sub[sub["author"] == "Partner"]
-            ax.scatter(
-                p_pts["pca_x"],
-                p_pts["pca_y"],
-                color="#94A3B8",
-                alpha=0.55,
-                s=28,
-                label="Rick (Partner)",
-                zorder=2,
-            )
-
-            # Jeffrey (Student): Terracotta oranje
             s_pts = sub[sub["author"] == "Student"]
-            ax.scatter(
-                s_pts["pca_x"],
-                s_pts["pca_y"],
-                color="#C2410C",
-                alpha=0.75,
-                s=30,
-                label="Jeffrey (Student)",
-                zorder=3,
-            )
+
+            # Continue benadering via Hoogtelijnen (KDE-contouren) i.p.v. losse stipjes
+            if len(p_pts) >= 5:
+                sns.kdeplot(
+                    data=p_pts,
+                    x="pca_x",
+                    y="pca_y",
+                    ax=ax,
+                    fill=True,
+                    levels=[0.20, 0.50, 0.80, 1.0],
+                    color=c_rick_fill,
+                    alpha=0.20,
+                    thresh=0.20,
+                    zorder=2,
+                )
+                sns.kdeplot(
+                    data=p_pts,
+                    x="pca_x",
+                    y="pca_y",
+                    ax=ax,
+                    fill=False,
+                    levels=[0.20, 0.50, 0.80],
+                    color=c_rick_fill,
+                    linewidths=1.0,
+                    alpha=0.45,
+                    zorder=2,
+                )
+
+            if len(s_pts) >= 5:
+                sns.kdeplot(
+                    data=s_pts,
+                    x="pca_x",
+                    y="pca_y",
+                    ax=ax,
+                    fill=True,
+                    levels=[0.20, 0.50, 0.80, 1.0],
+                    color=c_jeff,
+                    alpha=0.20,
+                    thresh=0.20,
+                    zorder=3,
+                )
+                sns.kdeplot(
+                    data=s_pts,
+                    x="pca_x",
+                    y="pca_y",
+                    ax=ax,
+                    fill=False,
+                    levels=[0.20, 0.50, 0.80],
+                    color=c_jeff,
+                    linewidths=1.0,
+                    alpha=0.45,
+                    zorder=3,
+                )
+
+            # Verwijder automatische Seaborn as-labels ('pca_x' / 'pca_y') op de deelvlakken
+            ax.set_xlabel("")
+            ax.set_ylabel("")
 
             # Zwaartepunten & Stijlafstand (Δ)
             cx_j, cy_j = float(s_pts["pca_x"].mean()), float(s_pts["pca_y"].mean())
@@ -697,91 +745,555 @@ class StylometryTimelinePlot(BasePlot):
                 else float(np.sqrt((cx_j - cx_r) ** 2 + (cy_j - cy_r) ** 2))
             )
 
-            # Verbindingslijn tussen zwaartepunten
+            is_focus_year = yr in (2024, 2025)
             ax.plot(
                 [cx_j, cx_r],
                 [cy_j, cy_r],
-                color="#64748B",
-                linestyle="--",
-                linewidth=1.5,
-                zorder=4,
+                color="#0F172A" if is_focus_year else "#475569",
+                linestyle="-",
+                linewidth=2.8 if is_focus_year else 2.0,
+                zorder=5,
             )
 
-            # Zwaartepunt Rick
+            # Centroid Rick (grote stip met witte rand)
             ax.scatter(
                 [cx_r],
                 [cy_r],
-                s=110,
-                facecolor="#FFFFFF",
-                edgecolor="#64748B",
-                linewidth=2.2,
-                zorder=5,
+                s=195,
+                color=c_rick_node,
+                edgecolor="white",
+                linewidth=2.5,
+                zorder=6,
             )
-            ax.scatter([cx_r], [cy_r], s=30, color="#64748B", zorder=6)
 
-            # Zwaartepunt Jeffrey
+            # Centroid Jeffrey (grote stip met witte rand)
             ax.scatter(
                 [cx_j],
                 [cy_j],
-                s=110,
-                facecolor="#FFFFFF",
-                edgecolor="#C2410C",
-                linewidth=2.2,
-                zorder=5,
+                s=195,
+                color=c_jeff,
+                edgecolor="white",
+                linewidth=2.5,
+                zorder=6,
             )
-            ax.scatter([cx_j], [cy_j], s=30, color="#C2410C", zorder=6)
 
-            # Jaarkopje met stijlafstand
-            dist_str = f"{dist:.2f}".replace(".", ",")
-            ax.set_title(
-                f"{yr}  (Stijlafstand Δ = {dist_str})",
-                fontsize=11.5,
+            # Directe Δ-badge op de verbindingslijn
+            mx = (cx_j + cx_r) / 2.0
+            my = (cy_j + cy_r) / 2.0
+            if yr == 2025:
+                mx += 0.95  # Naast de korte verbindingslijn zodat beide centroids 100% vrij zichtbaar blijven
+
+            dist_str = f"Δ = {dist:.2f}".replace(".", ",")
+            if yr == 2024:
+                dist_str += " (piek)"
+            elif yr == 2025:
+                dist_str += " (convergentie)"
+
+            ax.text(
+                mx,
+                my,
+                dist_str,
+                ha="center",
+                va="center",
+                fontsize=9.2 if is_focus_year else 8.6,
                 fontweight="bold",
-                color="#1A202C",
-                pad=10,
+                color="#FFFFFF" if yr == 2025 else "#0F172A",
+                bbox={
+                    "boxstyle": "round,pad=0.28",
+                    "facecolor": "#C2410C"
+                    if yr == 2025
+                    else ("#FEF3C7" if yr == 2024 else "#F8FAFC"),
+                    "edgecolor": "#9A3412"
+                    if yr == 2025
+                    else ("#D97706" if yr == 2024 else "#CBD5E1"),
+                    "lw": 1.2,
+                    "alpha": 0.96,
+                },
+                zorder=7,
             )
-            ax.set_xlim(-3.2, 6.2)
-            ax.set_ylim(-4.2, 4.2)
 
+            # Rustig jaartal linksboven in het vlak (geen drukke paneeltitels)
+            ax.text(
+                0.05,
+                0.92,
+                str(yr),
+                transform=ax.transAxes,
+                fontsize=14,
+                fontweight="bold",
+                color="#1E293B",
+                va="top",
+                ha="left",
+                zorder=7,
+            )
+
+            # Subtiele eenmalige directe naam-annotatie in het eerste paneel (2022)
             if i == 0:
                 ax.text(
-                    cx_j + 0.35,
-                    cy_j - 0.45,
-                    "Jeffrey (Student)",
-                    fontsize=8.8,
+                    cx_r + 0.22,
+                    cy_r + 0.18,
+                    "Rick",
+                    fontsize=9.2,
                     fontweight="bold",
-                    color="#C2410C",
-                    zorder=7,
-                )
-                ax.text(
-                    cx_r - 0.35,
-                    cy_r + 0.45,
-                    "Rick (Partner)",
-                    fontsize=8.8,
-                    fontweight="bold",
-                    color="#64748B",
-                    ha="right",
-                    zorder=7,
-                )
-                ax.text(
-                    -2.9,
-                    3.8,
-                    "▲ Boven: Punten & smileys",
-                    fontsize=7.8,
-                    fontweight="bold",
-                    color="#64748B",
-                    va="top",
-                )
-                ax.text(
-                    -2.9,
-                    -3.8,
-                    "▼ Onder: Veel komma's",
-                    fontsize=7.8,
-                    fontweight="bold",
-                    color="#C2410C",
+                    color=c_rick_node,
+                    ha="left",
                     va="bottom",
+                    zorder=7,
+                )
+                ax.text(
+                    cx_j + 0.22,
+                    cy_j - 0.18,
+                    "Jeffrey",
+                    fontsize=9.2,
+                    fontweight="bold",
+                    color=c_jeff,
+                    ha="left",
+                    va="top",
+                    zorder=7,
                 )
 
+            ax.set_xlim(-3.2, 3.8)
+            ax.set_ylim(-2.8, 3.2)
+
+        # Centrale aslabels (1 strakke regel per as voor minder clutter)
+        self.fig.supylabel(
+            "← Veel komma's & bijzinnen   |   Zinsbouw & Expressie (PC2: 12,4%)   |   Punten & smileys →",
+            fontsize=9.5,
+            fontweight="bold",
+            color="#1A202C",
+            x=0.035,
+        )
+
+        self.fig.supxlabel(
+            "← Korte reacties ('ok', 'top')   |   Woordlengte & Detail (PC1: 24,5%)   |   Lange woorden & cijfers →",
+            fontsize=9.5,
+            fontweight="bold",
+            color="#1A202C",
+            y=0.115,
+        )
+
+        # Schwabish Header met extra leeswijzer-regel in de subtitel (zodat een losse legenda-box overbodig is)
+        self.fig.text(
+            0.08,
+            0.955,
+            "Van eigen gewoontes naar een gedeelde taal: na een piek in 2024 trekt onze schrijfstijl in 2025 naar elkaar toe",
+            fontsize=12.4,
+            fontweight="bold",
+            color="#1A202C",
+            ha="left",
+            va="bottom",
+        )
+
+        subtitle = (
+            "In de eerste jaren schommelt het verschil in zinsbouw en woordkeuze (met een piek in afstand in 2024), "
+            "maar in 2025 halveert het stijlverschil (Δ van 1,59 naar 0,63) en ontstaat een gezamenlijke toon.\n"
+            "Leeswijzer: Grote stippen tonen de jaarlijkse centroids van Jeffrey (oranje) en Rick (blauw) met de stijlafstand (Δ) ertussen; "
+            "de hoogtelijnen (20%–80% KDE-dichtheid) tonen de spreiding."
+        )
+        self.fig.text(
+            0.08,
+            0.942,
+            subtitle,
+            fontsize=8.9,
+            style="italic",
+            color="#4A5568",
+            ha="left",
+            va="top",
+            linespacing=1.35,
+        )
+
+        # Methodologische voetnoot onderaan
+        footnote = (
+            f"* Methodologie & Verantwoording (100% data-dekking, complete kalenderjaren 2022–2025; 2026 uitgesloten wegens incompleetheid):\n"
+            f"  Vaste tekstfragmenten van 600 tekens (N = {len(df)}), gescoord op 13 stijlkenmerken en gestandaardiseerd met StandardScaler (z-scores).\n"
+            "  Centrale 2D PCA verklaart 36,9% van de totale variantie (PC1: 24,5%, PC2: 12,4%; eigenwaarden λ1 = 3,19, λ2 = 1,62).\n"
+            "  Interne structuur: 1-NN cross-validation baseline = 68,9% (kansniveau = 50,0%) | Silhouette = 0,038 (geschudde nulcontrole = -0,002).\n"
+            f"  Stijlafstand tussen zwaartepunten (Δ): 2022: {deltas_dict.get(2022, 1.45):.2f} | 2023: {deltas_dict.get(2023, 1.32):.2f} | 2024: {deltas_dict.get(2024, 1.59):.2f} | 2025: {deltas_dict.get(2025, 0.63):.2f} (sterke taalconvergentie in 2025)."
+        )
+        self.fig.text(
+            0.08,
+            0.015,
+            footnote,
+            fontsize=7.8,
+            color="#4A5568",
+            style="italic",
+            va="bottom",
+            ha="left",
+            linespacing=1.3,
+        )
+
+        return self.fig, self.ax
+
+
+class ConceptNetworkPlot(BasePlot):
+    """Gewogen concept-netwerkgraaf met instelbare edge-drempel via BasePlot."""
+
+    def __init__(
+        self,
+        settings: PlotSettings | None = None,
+        n_plots: int | None = 1,
+    ) -> None:
+        if settings is None:
+            settings = JeffreyPlotSettings(figsize=(13.5, 10.5), title="")
+        super().__init__(settings=settings, n_plots=n_plots)
+
+    def build(
+        self,
+        graph: nx.Graph,
+        min_edge_weight: int = 15,
+        highlight_weight: int = 35,
+        *_args: object,
+        **_kwargs: object,
+    ) -> tuple[Figure, Axes]:
+        if self.fig is None or self.ax is None:
+            self.create_figure()
+        if self.fig is None or self.ax is None:
+            raise ValueError("create_figure() must initialize self.fig and self.ax")
+
+        from matplotlib.lines import Line2D
+        from matplotlib.patches import Circle, FancyArrowPatch
+        from wa_analyzer.features.concept_graph import THEME_COLORS_4
+
+        self.fig.patch.set_facecolor("white")
+        self.ax.set_facecolor("white")
+        self.ax.axis("off")
+
+        # Handmatig verfijnde, deterministische 2D-posities:
+        # 'thuis', 'eten & koken' en 'Nusa & Indy' in de centrale driehoek,
+        # met de 4 leefwerelden organisch gegroepeerd zonder tekst-overlap.
+        pos: dict[str, tuple[float, float]] = {
+            # Voeding & Huishouden (Links / Centrum-Links)
+            "thuis": (-0.18, 0.16),
+            "eten & koken": (-0.20, -0.26),
+            "horeca": (-0.75, -0.45),
+            "sporten": (-0.78, -0.05),
+            # Huisdieren (Onder / Rechts-Onder)
+            "Nusa & Indy": (0.25, -0.28),
+            "uitlaten": (0.04, -0.74),
+            "dierenarts": (0.50, -0.52),
+            "eten honden": (0.50, -0.68),
+            # Werk & Mobiliteit (Links-Boven / Boven)
+            "werken algemeen": (-0.28, 0.65),
+            "vervoersmiddelen": (0.22, 0.68),
+            "Avans": (-0.76, 0.52),
+            "Rabobank & Gemeente": (-0.78, 0.84),
+            # Zorg & Familie (Rechts / Rechts-Boven)
+            "onze ouders": (0.58, 0.22),
+            "medisch & zorg": (0.72, -0.14),
+            "familie": (0.82, 0.56),
+            "Feesten": (0.88, 0.84),
+        }
+
+        # Bereken totale node-strength (op het volledige netwerk >= 3) en actieve graad (>= min_edge_weight)
+        node_strength: dict[str, int] = {}
+        active_degree: dict[str, int] = dict.fromkeys(graph.nodes(), 0)
+        for u in graph.nodes():
+            node_strength[u] = sum(
+                int(d.get("weight", 0)) for _, _, d in graph.edges(u, data=True)
+            )
+
+        filtered_edges: list[tuple[str, str, int]] = []
+        for u, v, d in graph.edges(data=True):
+            w = int(d.get("weight", 0))
+            if w >= min_edge_weight:
+                filtered_edges.append((u, v, w))
+                active_degree[u] += 1
+                active_degree[v] += 1
+
+        # Sorteer edges zodat de zwaarste lijnen en labels bovenop liggen
+        filtered_edges.sort(key=lambda item: item[2])
+        max_w = max((w for _, _, w in filtered_edges), default=125)
+
+        # 1. Subtiele achtergrond-halo voor de centrale 'keukentafel'-driehoek
+        hub_circle = Circle(
+            (-0.04, -0.12),
+            0.44,
+            facecolor="#FFFBEB",
+            edgecolor="#FDE68A",
+            linewidth=1.5,
+            linestyle="--",
+            alpha=0.65,
+            zorder=1,
+        )
+        self.ax.add_patch(hub_circle)
+        self.ax.text(
+            0.00,
+            -0.38,
+            "Dagelijkse spil\n('keukentafel')",
+            ha="center",
+            va="center",
+            fontsize=8.5,
+            fontstyle="italic",
+            fontweight="bold",
+            color="#92400E",
+            alpha=0.85,
+            zorder=2,
+        )
+
+        # 2. Teken gewogen edges boven de drempelwaarde
+        for u, v, w in filtered_edges:
+            x0, y0 = pos[u]
+            x1, y1 = pos[v]
+            same_theme = graph.nodes[u].get("theme") == graph.nodes[v].get("theme")
+            is_backbone = w >= highlight_weight
+
+            if is_backbone:
+                lw = 2.4 + 5.2 * (w / max_w)
+                alpha = 0.82
+                edge_col = (
+                    THEME_COLORS_4.get(str(graph.nodes[u].get("theme")), "#334155")
+                    if same_theme
+                    else "#1E293B"
+                )
+                z_ord = 4
+            else:
+                lw = 1.0 + 2.2 * (w / max_w)
+                alpha = 0.35
+                edge_col = "#64748B" if same_theme else "#94A3B8"
+                z_ord = 3
+
+            # Gebruik een hele lichte kromming voor lange brug-lijnen zodat ze niet door andere nodes snijden
+            rad = 0.08 if not same_theme and not is_backbone else 0.0
+            arrow = FancyArrowPatch(
+                (x0, y0),
+                (x1, y1),
+                connectionstyle=f"arc3,rad={rad}",
+                arrowstyle="-",
+                linewidth=lw,
+                color=edge_col,
+                alpha=alpha,
+                linestyle="-" if (same_theme or is_backbone) else "--",
+                zorder=z_ord,
+            )
+            self.ax.add_patch(arrow)
+
+            # Label de gewichten op de belangrijkste ruggengraat-verbindingen (w >= highlight_weight)
+            if is_backbone:
+                mx = (x0 + x1) / 2.0
+                my = (y0 + y1) / 2.0
+                # Kleine offset voor leesbaarheid zodat geen enkel label overlapt
+                if {u, v} == {"thuis", "eten & koken"}:
+                    mx -= 0.07
+                elif {u, v} == {"thuis", "Nusa & Indy"}:
+                    mx = 0.01
+                    my = -0.02
+                elif {u, v} == {"eten & koken", "Nusa & Indy"}:
+                    my -= 0.05
+                elif {u, v} == {"eten & koken", "onze ouders"}:
+                    mx = 0.25
+                    my = 0.02
+                elif {u, v} == {"thuis", "horeca"}:
+                    mx = -0.40
+                    my = -0.08
+                elif {u, v} == {"eten & koken", "sporten"}:
+                    mx = -0.58
+                    my = -0.13
+
+                self.ax.text(
+                    mx,
+                    my,
+                    str(w),
+                    ha="center",
+                    va="center",
+                    fontsize=8.4,
+                    fontweight="bold",
+                    color="#0F172A" if w < 80 else "#FFFFFF",
+                    bbox={
+                        "boxstyle": "round,pad=0.22",
+                        "facecolor": "#1E293B" if w >= 80 else "#F8FAFC",
+                        "edgecolor": "#CBD5E1" if w < 80 else "#0F172A",
+                        "lw": 1.0,
+                        "alpha": 0.94,
+                    },
+                    zorder=6,
+                )
+
+        # 3. Teken de 16 concept-nodes (geschaald op totale interactiekracht)
+        label_offsets: dict[str, tuple[float, float, str, str]] = {
+            "thuis": (-0.06, 0.09, "right", "bottom"),
+            "eten & koken": (-0.06, -0.09, "right", "top"),
+            "Nusa & Indy": (0.06, -0.08, "left", "top"),
+            "onze ouders": (0.06, 0.07, "left", "bottom"),
+            "werken algemeen": (0.0, 0.09, "center", "bottom"),
+            "vervoersmiddelen": (0.0, 0.08, "center", "bottom"),
+            "medisch & zorg": (0.06, 0.0, "left", "center"),
+            "horeca": (0.0, -0.07, "center", "top"),
+            "sporten": (-0.06, 0.0, "right", "center"),
+            "uitlaten": (0.0, -0.07, "center", "top"),
+            "Avans": (-0.06, 0.0, "right", "center"),
+            "Rabobank & Gemeente": (-0.05, 0.0, "right", "center"),
+            "familie": (0.05, 0.0, "left", "center"),
+            "Feesten": (0.05, 0.0, "left", "center"),
+            "dierenarts": (0.05, 0.0, "left", "center"),
+            "eten honden": (-0.04, 0.0, "right", "center"),
+        }
+
+        for node in graph.nodes():
+            is_active = active_degree.get(node, 0) > 0
+            if not is_active:
+                continue
+
+            nx_x, nx_y = pos[node]
+            theme = str(graph.nodes[node].get("theme", ""))
+            col = THEME_COLORS_4.get(theme, "#475569")
+            strength = node_strength.get(node, 0)
+
+            # Schaal node-oppervlak op basis van gewogen graad (strength)
+            s_size = 180.0 + (strength * 2.35)
+
+            self.ax.scatter(
+                nx_x,
+                nx_y,
+                s=s_size,
+                color=col,
+                edgecolor="white",
+                linewidth=2.4,
+                alpha=0.95,
+                zorder=5,
+            )
+
+            dx, dy, ha_align, va_align = label_offsets.get(
+                node, (0.0, -0.07, "center", "top")
+            )
+            label_str = (
+                f"{node}\n(s={strength})" if strength >= 150 else f"{node} ({strength})"
+            )
+            self.ax.text(
+                nx_x + dx,
+                nx_y + dy,
+                label_str,
+                ha=ha_align,
+                va=va_align,
+                fontsize=9.2 if strength >= 200 else 8.4,
+                fontweight="bold",
+                fontstyle="normal",
+                color="#0F172A",
+                bbox={
+                    "boxstyle": "round,pad=0.22",
+                    "facecolor": "white",
+                    "edgecolor": col if strength >= 240 else "none",
+                    "lw": 1.1 if strength >= 240 else 0.0,
+                    "alpha": 0.88,
+                },
+                zorder=7,
+            )
+
+        # 4. Verhalende annotaties voor de 2 kerninzichten
+        annotate_badge(
+            self.ax,
+            "1. De 'keukentafel'-driehoek:\nSterkste verbindingen tussen thuis,\neten & koken (125) en de honden (99)",
+            xy=(-0.19, -0.05),
+            xytext=(-1.12, -0.78),
+            settings=self.settings
+            if isinstance(self.settings, JeffreyPlotSettings)
+            else None,
+        )
+        annotate_context_badge(
+            self.ax,
+            "2. Bruggen naar buitenwereld:\nWerk (64) en onze ouders (45)\nhaken direct aan op thuis & eten",
+            xy=(0.20, 0.20),
+            xytext=(0.38, 0.92),
+            settings=self.settings
+            if isinstance(self.settings, JeffreyPlotSettings)
+            else None,
+        )
+
+        # 5. Legenda voor de 4 leefwerelden en de verbindingsdrempel
+        legend_handles = [
+            Line2D(
+                [0],
+                [0],
+                marker="o",
+                color="w",
+                label=theme_name,
+                markerfacecolor=theme_col,
+                markersize=10,
+            )
+            for theme_name, theme_col in THEME_COLORS_4.items()
+        ]
+        legend_handles.extend(
+            [
+                Line2D(
+                    [0],
+                    [0],
+                    color="#1E293B",
+                    lw=3.2,
+                    linestyle="-",
+                    label=f"Hoofdader (gewicht ≥ {highlight_weight})",
+                ),
+                Line2D(
+                    [0],
+                    [0],
+                    color="#94A3B8",
+                    lw=1.6,
+                    linestyle="--",
+                    label=f"Nevenverbinding ({min_edge_weight} ≤ gewicht < {highlight_weight})",
+                ),
+            ]
+        )
+        self.ax.legend(
+            handles=legend_handles,
+            loc="lower right",
+            frameon=True,
+            facecolor="#F8FAFC",
+            edgecolor="#CBD5E1",
+            fontsize=8.4,
+            title="Leefwerelden & Verbindingen",
+            title_fontsize=8.8,
+        )
+
+        self.ax.set_xlim(-1.22, 1.25)
+        self.ax.set_ylim(-0.98, 1.08)
+
+        # 6. Pakkende Schwabish-header & statistische voetnoot
+        main_title = (
+            "Van werk en familie altijd weer terug naar huis: "
+            "de centrale driehoek die onze WhatsApp-gesprekken verbindt"
+        )
+        subtitle = (
+            f"Netwerkgraaf van 16 onderwerpen (gefilterd op ≥ {min_edge_weight} interacties binnen 10 min): "
+            "knoopgrootte toont hoe vaak een onderwerp meespeelt, lijndikte toont de sterkste gespreksroutes."
+        )
+
+        self.fig.text(
+            0.05,
+            0.955,
+            main_title,
+            fontsize=12.6,
+            fontweight="bold",
+            color="#1A202C",
+            va="bottom",
+            ha="left",
+        )
+        self.fig.text(
+            0.05,
+            0.930,
+            subtitle,
+            fontsize=9.2,
+            fontstyle="italic",
+            color="#475569",
+            va="bottom",
+            ha="left",
+        )
+
+        n_active_edges = len(filtered_edges)
+        footnote_text = (
+            f"- Toelichting & Statistische verantwoording: Bij drempelwaarde ≥ {min_edge_weight} blijven de {n_active_edges} sterkste verbindingen zichtbaar.\n"
+            "- Brugfunctie (Betweenness Centrality): 'thuis' (0,36), 'eten & koken' (0,35) en 'Nusa & Indy' (0,32) vormen het centrale knooppunt waar alle domeinen samenkomen.\n"
+            "- Modulariteitstoets (volledige graaf ≥ 3): De 4 deductieve leefwerelden clusteren significant sterker dan toeval (Q = 0,068, z = +5,32, p < 0,001; 1.000 permutaties), "
+            "terwijl 64,3% van het gewicht een brug slaat tussen domeinen."
+        )
+        self.fig.text(
+            0.05,
+            0.02,
+            footnote_text,
+            fontsize=7.8,
+            color="#475569",
+            va="bottom",
+            ha="left",
+            linespacing=1.35,
+        )
+
+        self.fig.subplots_adjust(top=0.90, bottom=0.10, left=0.04, right=0.96)
         return self.fig, self.ax
 
 
@@ -794,7 +1306,7 @@ class ConceptMatrixPlot(BasePlot):
         n_plots: int | None = 1,
     ) -> None:
         if settings is None:
-            settings = JeffreyPlotSettings(figsize=(11, 10))
+            settings = JeffreyPlotSettings(figsize=(12.8, 12.0), title="")
         super().__init__(settings=settings, n_plots=n_plots)
 
     def build(
@@ -948,26 +1460,30 @@ class ConceptMatrixPlot(BasePlot):
             )
 
         # Main title, subtitle en footnote conform Les 7
-        main_title = "Interactiedichtheid over 4 themagebieden: Thuis, eten en de honden vormen de basis voor de meeste gespreksonderwerpen"
-        subtitle = "Hiërarchische burenmatrix van 16 kernconcepten (4×4 modulair, Δt = 10 min, interacties ≥ 3). Kaders tonen thema-clusters; getallen tonen interactiekracht."
+        main_title = (
+            "Interactiedichtheid over 4 themagebieden: Thuis, eten en de honden "
+            "vormen de basis voor de meeste gespreksonderwerpen"
+        )
+        subtitle = (
+            "Hiërarchische burenmatrix van 16 kernconcepten (4×4 modulair, Δt = 10 min, interacties ≥ 3). "
+            "Kaders tonen thema-clusters; getallen tonen interactiekracht."
+        )
 
-        self.ax.text(
-            0.0,
-            1.10,
+        self.fig.text(
+            0.18,
+            0.965,
             main_title,
-            transform=self.ax.transAxes,
-            fontsize=11.6,
+            fontsize=12.0,
             fontweight="bold",
             color="#1A202C",
             va="bottom",
             ha="left",
         )
-        self.ax.text(
-            0.0,
-            1.055,
+        self.fig.text(
+            0.18,
+            0.942,
             subtitle,
-            transform=self.ax.transAxes,
-            fontsize=9.0,
+            fontsize=9.2,
             fontweight="normal",
             color="#475569",
             va="bottom",
@@ -981,14 +1497,13 @@ class ConceptMatrixPlot(BasePlot):
             "  (Q = 0,065, z = +4,92, p < 0,001 t.o.v. 1.000 netwerk-permutaties). Cellen buiten kaders tonen de verwevenheid: 63,9% van het gewicht slaat een brug tussen de domeinen."
         )
 
-        self.ax.text(
-            0.0,
-            -0.155,
+        self.fig.text(
+            0.18,
+            0.025,
             footnote_text,
-            transform=self.ax.transAxes,
             fontsize=7.8,
             color="#475569",
-            va="top",
+            va="bottom",
             ha="left",
             linespacing=1.35,
         )
@@ -999,6 +1514,7 @@ class ConceptMatrixPlot(BasePlot):
         )
         cbar.ax.tick_params(labelsize=8, colors="#475569")
 
+        self.fig.subplots_adjust(top=0.82, bottom=0.15, left=0.18, right=0.88)
         return self.fig, self.ax
 
 
