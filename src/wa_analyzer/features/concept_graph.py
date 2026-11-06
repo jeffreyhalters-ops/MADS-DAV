@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 import re
 from typing import Any
 
@@ -10,16 +11,16 @@ import pandas as pd
 
 CONCEPTS_16: dict[str, dict[str, str]] = {
     "Voeding & Huishouden": {
-        "thuis": r"\b(thuis|naar huis|ben thuis|thuiskomen|thuiskomt|thuiskwam|thuiswerken|doenradestraat|vijfhagen|ijpelaar|huis|tuin|\bbank\b|huishouden)\b",
-        "eten & koken": r"\b(eten|eet|eette|gegeten|avondeten|lunch|lunchen|geluncht|ontbijt|ontbijten|koffie|bakkie|koffietje|cappuccino|bonen|brood|broodjes|broodje|bakker|croissant|beleg|soep|yoghurt|havermout|tosti|fruit|pasta|pastatje|spaghetti|spagetti|macaroni|makkaroni|pizza|pizza\'s|pizzas|lasagne|lasagna|risotto|tagliatelle|penne|koken|kookt|kookte|gekookt|kook|pan|pannen|gerechten|gerecht|ingredienten|ingrediënten|recept|recepten|bakken|gebakken|ovenschaal|wokken|snijden|braden|boodschappen|boodschap|boodschappenlijst|boodschappenlijstje|jumbo|appie|albert heijn|\bah\b|lidl|aldi|toko|markt|supermarkt|inkopen|thuisbezorgen|bezorgd|bestelling)\b",
+        "thuis": r"\b(thuis|naar huis|ben thuis|thuiskomen|thuiskomt|thuiskwam|thuiswerken|doenradestraat|vijfhagen|ijpelaar|huis|tuin|huishouden)\b",
+        "eten & koken": r"\b(eten|eet|eette|gegeten|avondeten|lunch|lunchen|geluncht|ontbijt|ontbijten|koffie|bakkie|koffietje|cappuccino|bonen|brood|broodjes|broodje|bakker|croissant|beleg|soep|yoghurt|havermout|tosti|fruit|pasta|pastatje|spaghetti|spagetti|macaroni|makkaroni|pizza|pizza\'s|pizzas|lasagne|lasagna|risotto|tagliatelle|penne|nasi|bami|bbq|barbecue|fondu|fondue|fodue|koken|kookt|kookte|gekookt|kook|pan|pannen|gerechten|gerecht|ingredienten|ingrediënten|recept|recepten|bakken|gebakken|ovenschaal|wokken|snijden|braden|boodschappen|boodschap|boodschappenlijst|boodschappenlijstje|jumbo|appie|albert heijn|\bah\b|lidl|aldi|toko|markt|supermarkt|inkopen|thuisbezorgen|bezorgd|bestelling)\b",
         "horeca": r"\b(restaurant|restaurants|uiteten|bestellen|afhalen|thuisbezorgd|sabero|fazant|tthai|t-thai|terras|terrasje|terrassie|borrel|borrelen|borreltje|drankje|drankjes|biertje|biertjes|wijntje|wijntjes|wijnproeverij|proeverij|cocktail|cocktails|friet|frietje|frietjes|patat|snackbar|frituur|chinees|sushi|tapas|griek|italiaan|pizzeria|kroeg|cafe|café|cafes|cafés|lunchroom|bistro|brasserie|mcdonalds|\bmac\b|kfc|burger|hamburgers)\b",
-        "sporten": r"\b(sporten|sport|gesport|sportte|sportschool|fitness|hardlopen|hardgelopen|rennen|loods|loods5|workout|gym)\b",
+        "sporten": r"\b(sporten|sport|gesport|sportte|sportschool|fitness|hardlopen|hardgelopen|rennen|loods|puru|workout|gym)\b",
     },
     "Werk & Mobiliteit": {
-        "Avans": r"\b(avans|den bosch|\bdb\b|lesgeven|\bles\b|lessen|icais|ilse|emese|marit|saskia|patricia|student|studenten|nakijken|toets|toetsen|collega|collega\'s|collegas|vergadering)\b",
-        "Rabobank & Gemeente": r"\b(moerdijk|zevenbergen|rabobank|\brabo\b|kantoor|locatie|locaties|afdeling|gemeente)\b",
-        "werken algemeen": r"\b(werken|werkt|werkte|gewerkt|overleg|meeting|gesprek|afspraak|werkdag|\bwerk\b|teams)\b",
-        "vervoersmiddelen": r"\b(trein|treinen|spoor|vertraging|vertragingen|centraal|station|stations|perron|perrons|intercity|sprinter|\bns\b|treinkaartje|overstap|overstappen|auto|auto\'s|autos|autootje|wagen|file|files|vakantiefile|garage|opladen|tanken|benzine|bezine|peugeot|parkeergarage|stalling|parkeren|parkeer|parkeerkaart|autosleutel|autosleutels|rijden|rijd|rijdt|reed|gereden|onderweg|reistijd|filerijden|aangereden|vertrokken|\brij\b)\b",
+        "Avans": r"\b(avans|den bosch|\bdb\b|lesgeven|\bles\b|lessen|icais|ilse|emese|marit|saskia|patricia|student|studenten|nakijken|toets|toetsen|vergadering)\b",
+        "Rabobank & Gemeente": r"\b(moerdijk|zevenbergen|rabobank|\brabo\b|kantoor|locatie|locaties|afdeling|gemeente|tessa|kim|lindsey)\b",
+        "werken algemeen": r"\b(werken|werkt|werkte|gewerkt|overleg|meeting|gesprek|afspraak|werkdag|\bwerk\b|teams|collega|collega\'s|collegas)\b",
+        "vervoersmiddelen": r"\b(trein|treinen|spoor|vertraging|vertragingen|centraal|station|stations|perron|perrons|intercity|sprinter|\bns\b|treinkaartje|overstap|overstappen|\bbus\b|bussen|auto|auto\'s|autos|autootje|wagen|file|files|vakantiefile|garage|opladen|tanken|benzine|bezine|peugeot|parkeergarage|stalling|parkeren|parkeer|parkeerkaart|autosleutel|autosleutels|rijden|rijd|rijdt|reed|gereden|onderweg|reistijd|filerijden|aangereden|vertrokken|\brij\b)\b",
     },
     "Huisdieren": {
         "Nusa & Indy": r"\b(hond|honden|hondje|hondjes|doggo|doggo\'s|doggos|beestje|beestjes|hondepoot|nusa|musa|noes|indy|indi)\b",
@@ -28,18 +29,11 @@ CONCEPTS_16: dict[str, dict[str, str]] = {
         "dierenarts": r"\b(dierenarts|dierenartsen|dierarts|kliniek|dierenkliniek|dierenpension|puppytraining|inenting|inentingen|vaccin|vaccins|vaccinatie|vaccinaties|ontwormen|ontvlooien|pilletje|pilletjes|tandjes gewisseld)\b",
     },
     "Zorg & Familie": {
-        "onze ouders": r"\b(moeder|mam|mama|mams|vader|pap|papa|paps|ouders|schoonouders|heeze|maarheeze|oosterhout|oosterh|den hout|oosteind|joury|milou|carnaval|carnavallen|carnavals)\b",
-        "familie": r"\b(familie|oma|bep|carola|\bad\b|leo|mirjam|joost|luuk|luke|luc|suus|spelen|julie|sinterklaas|oppassen|neefje|nichtje|tante|oom|schoonfamilie)\b",
-        "Feesten": r"\b(verjaardag|verjaardagen|verjaardagsfeest|verjaardagscadeau|jarig|jarige|gefeliciteerd|gefeliciteerdjes|feliciteren|felicitaties|feest|feestje|feestjes|party|bday|cadeau|cadeautje|cadeaus|cadeautjes|kerst|kerstmis|kerstdiner|kerstdagen|oud en nieuw|jaarwisseling|bruiloft|trouwen|huwelijk|jubileum)\b",
+        "onze ouders": r"\b(moeder|mam|mama|mams|vader|pap|papa|paps|ouders|schoonouders|anja|peter|ans|frank|mia|heeze|maarheeze|oosterhout|oosterh|den hout|oosteind)\b",
+        "familie & vrienden": r"\b(familie|oma|bep|carola|\bad\b|leo|mirjam|joost|luuk|luke|luc|suus|julie|sinterklaas|oppassen|neefje|nichtje|tante|oom|schoonfamilie|vrienden|joury|milou|iwan|michel|dennis|wesley|bas|melanie|helma|koen|femke|nick|michelle|marielle|mariëlle)\b",
+        "Feesten": r"\b(verjaardag|verjaardagen|verjaardagsfeest|verjaardagscadeau|jarig|jarige|gefeliciteerd|gefeliciteerdjes|feliciteren|felicitaties|feest|feestje|feestjes|party|bday|cadeau|cadeautje|cadeaus|cadeautjes|kerst|kerstmis|kerstdiner|kerstdagen|oud en nieuw|jaarwisseling|carnaval|carnavallen|carnavals|bruiloft|trouwen|huwelijk|jubileum)\b",
         "medisch & zorg": r"\b(dokter|dokters|huisarts|huisartsen|ziekenhuis|ziekenhuizen|amphia|apotheek|apotheken|bloedprikken|fysio|fysiotherapie|tandarts|tandartsen|mondhygienist|operatie|operaties|ingreep|revalidatie|behandeling|medicijnen|medicatie|pillen|paracetamol|ibuprofen|antibiotica|oogdruppels|zalf|pleister|verband|wond|pijn|hoofdpijn|buikpijn|keelpijn|rugpijn|ziek|zieker|ziekjes|griep|verkouden|koorts|corona|covid|slaap|slapen|geslapen|moe|uitrusten|bijkomen|rustig aan|beterschap|buurstede|wmo|wlz|zorg|dement|dementie|dagbesteding|geheugen|achteruit|indicatie|zorgkantoor)\b",
     },
-}
-
-THEME_COLORS_4: dict[str, str] = {
-    "Voeding & Huishouden": "#B45309",  # Diep warm oranje/amber
-    "Werk & Mobiliteit": "#1D4ED8",  # Zakelijk kobaltblauw
-    "Huisdieren": "#475569",  # Rustig leisteengrijs
-    "Zorg & Familie": "#047857",  # Warm bosgroen
 }
 
 
@@ -159,3 +153,48 @@ def build_hierarchical_adjacency_matrix(
     adj_clean[adj_clean < min_weight] = 0
 
     return adj_clean, ordered_concepts, theme_slices
+
+
+def extract_top_concept_words(
+    df: pd.DataFrame,
+    top_n: int = 3,
+) -> dict[str, list[tuple[str, int]]]:
+    """Extraheer per concept de meest voorkomende daadwerkelijke woorden uit de chat.
+
+    Maakt de onderliggende data per knoop zichtbaar (zodat te zien is welke woorden
+    het betreffende concept vormen).
+    """
+    valid = df[df["message"].notna() & ~df.get("has_only_media", False)].copy()
+    msgs = valid["message"].apply(clean_whatsapp_text).tolist()
+
+    lemma_map = {
+        "eet": "eten",
+        "kook": "koken",
+        "gekookt": "koken",
+        "uitgelaten": "uitlaten",
+        "gewandeld": "wandelen",
+        "gesport": "sporten",
+        "sport": "sporten",
+        "werken": "werk",
+        "gewerkt": "werk",
+        "slaap": "slapen",
+        "geslapen": "slapen",
+        "besteld": "bestellen",
+        "mariëlle": "marielle",
+    }
+
+    top_words: dict[str, list[tuple[str, int]]] = {}
+    for subdict in CONCEPTS_16.values():
+        for c_name, pattern in subdict.items():
+            rx = re.compile(pattern)
+            counts: Counter[str] = Counter()
+            for msg in msgs:
+                if not msg:
+                    continue
+                for match in rx.findall(msg):
+                    word = (match if isinstance(match, str) else match[0]).strip()
+                    word = lemma_map.get(word, word)
+                    counts[word] += 1
+            top_words[c_name] = counts.most_common(top_n)
+
+    return top_words

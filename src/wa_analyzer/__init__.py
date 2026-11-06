@@ -9,16 +9,13 @@ from wa_analyzer.pipeline import (
 )
 from wa_analyzer.preprocess import parse_raw_chat
 from wa_analyzer.visualizer import (
-    BarPlot,
-    BarPlotWithError,
-    ConceptMatrixPlot,
+    ChordComparisonPlot,
+    ConceptNetworkPlot,
     JeffreyPlotSettings,
     NegativeBinomialPlot,
     PiecewiseRegPlot,
     ResidualCurvePlot,
-    SemanticPCAPlot,
     StylometryTimelinePlot,
-    TopicNetworkPlot,
     annotate_badge,
     annotate_callout,
     annotate_context_badge,
@@ -26,21 +23,19 @@ from wa_analyzer.visualizer import (
     format_footnote,
     format_header,
     plot_residual_curve,
+    save_figure,
     setup_dayparts_axis,
 )
 
 __all__ = [
-    "BarPlot",
-    "BarPlotWithError",
-    "ConceptMatrixPlot",
+    "ChordComparisonPlot",
+    "ConceptNetworkPlot",
     "JeffreyPlotSettings",
     "NegativeBinomialPlot",
     "PiecewiseRegPlot",
     "PipelineConfig",
     "ResidualCurvePlot",
-    "SemanticPCAPlot",
     "StylometryTimelinePlot",
-    "TopicNetworkPlot",
     "annotate_badge",
     "annotate_callout",
     "annotate_context_badge",
@@ -53,5 +48,6 @@ __all__ = [
     "parse_raw_chat",
     "plot_residual_curve",
     "run_feature_pipeline",
+    "save_figure",
     "setup_dayparts_axis",
 ]

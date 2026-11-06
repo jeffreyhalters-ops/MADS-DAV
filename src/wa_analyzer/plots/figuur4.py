@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import contextlib
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -16,6 +15,7 @@ from wa_analyzer.config import PIECEWISE_KNOT_WORDS
 from wa_analyzer.visualizer import (
     JeffreyPlotSettings,
     PiecewiseRegPlot,
+    save_figure,
 )
 
 
@@ -331,9 +331,6 @@ def plot_figuur4(
 
     plt.tight_layout()
 
-    if save_path is not None:
-        with contextlib.suppress(PermissionError):
-            save_path.parent.mkdir(parents=True, exist_ok=True)
-            fig.savefig(save_path, dpi=200, bbox_inches="tight")
+    save_figure(fig, save_path, dpi=300)
     plt.close(fig)
     return fig

@@ -2,9 +2,9 @@
 
 from wa_analyzer.features.concept_graph import (
     CONCEPTS_16,
-    THEME_COLORS_4,
     build_hierarchical_adjacency_matrix,
     clean_whatsapp_text,
+    extract_top_concept_words,
 )
 from wa_analyzer.features.embeddings import enrich_sessions_with_embeddings
 from wa_analyzer.features.stylometry import (
@@ -36,7 +36,6 @@ __all__ = [
     "ReplyWordCountFeature",
     "ResponseTimeFeature",
     "SessionizeFeature",
-    "THEME_COLORS_4",
     "ThematicRegexFeature",
     "build_chunks_dataframe",
     "build_hierarchical_adjacency_matrix",
@@ -45,5 +44,6 @@ __all__ = [
     "clean_whatsapp_text",
     "enrich_sessions_with_embeddings",
     "extract_style_features",
+    "extract_top_concept_words",
     "fit_session_threshold",
 ]

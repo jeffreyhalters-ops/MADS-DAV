@@ -7,7 +7,6 @@ Adopteert Les 6 cel 28-30 van DAV:
 - Statistische verificatie via 1-NN cross-validatie nauwkeurigheid en silhouette score.
 """
 
-import contextlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -25,7 +24,7 @@ from wa_analyzer.features.stylometry import (
     STYLE_FEATURE_NAMES,
     build_chunks_dataframe,
 )
-from wa_analyzer.visualizer import StylometryTimelinePlot
+from wa_analyzer.visualizer import StylometryTimelinePlot, save_figure
 
 
 @dataclass(frozen=True)
@@ -282,10 +281,5 @@ def plot_figuur5(
     plot = StylometryTimelinePlot()
     fig, _ = plot.build(result.pca_df, result.deltas_df)
 
-    if save_path is not None:
-        with contextlib.suppress(PermissionError):
-            save_path = Path(save_path)
-            save_path.parent.mkdir(parents=True, exist_ok=True)
-            fig.savefig(save_path, dpi=200, bbox_inches="tight")
-
+    save_figure(fig, save_path, dpi=300)
     return fig

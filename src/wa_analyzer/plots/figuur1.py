@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import contextlib
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -17,6 +16,7 @@ from wa_analyzer.visualizer import (
     apply_dav_theme,
     format_footnote,
     format_header,
+    save_figure,
 )
 
 
@@ -192,9 +192,6 @@ def plot_figuur1(
 
     format_footnote(ax, text=footnote_text, y_offset=-0.25)
 
-    if save_path is not None:
-        with contextlib.suppress(PermissionError):
-            save_path.parent.mkdir(parents=True, exist_ok=True)
-            fig.savefig(save_path, dpi=200, bbox_inches="tight")
+    save_figure(fig, save_path, dpi=300)
     plt.close(fig)
     return fig

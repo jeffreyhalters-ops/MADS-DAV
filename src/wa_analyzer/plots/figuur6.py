@@ -8,7 +8,6 @@ Adopteert Les 7 cel 2, 4 en 6 van DAV:
 - Opgemaakt als 16x16 adjacency matrix met thematische subklasse-haken en annotaties.
 """
 
-import contextlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -21,8 +20,13 @@ from matplotlib.figure import Figure
 from wa_analyzer.features.concept_graph import (
     CONCEPTS_16,
     build_hierarchical_adjacency_matrix,
+    extract_top_concept_words,
 )
-from wa_analyzer.visualizer import ConceptMatrixPlot, ConceptNetworkPlot
+from wa_analyzer.visualizer import (
+    ChordComparisonPlot,
+    ConceptNetworkPlot,
+    save_figure,
+)
 
 
 @dataclass(frozen=True)
@@ -42,6 +46,7 @@ class Figuur6MatrixResult:
     pct_intra: float
     pct_inter: float
     summary_df: pd.DataFrame
+    df_chat: pd.DataFrame | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Exporteert kernresultaten naar dictionary voor rapportage."""
@@ -120,16 +125,22 @@ def fit_figuur6_matrix(
     adj_clean, ordered_concepts, theme_slices = build_hierarchical_adjacency_matrix(
         df_chat, delta_seconds=delta_seconds, min_weight=min_weight
     )
+    top_words_map = extract_top_concept_words(df_chat, top_n=3)
 
     concept_to_theme: dict[str, str] = {}
     for theme, subdict in CONCEPTS_16.items():
         for c_name in subdict:
             concept_to_theme[c_name] = theme
 
-    # Construeer NetworkX graaf
+    # Construeer NetworkX graaf inclusief de onderliggende top-woorden per concept
     graph = nx.Graph()
     for c in ordered_concepts:
-        graph.add_node(c, theme=concept_to_theme[c])
+        w_list = [w for w, _ in top_words_map.get(c, [])[:2]]
+        graph.add_node(
+            c,
+            theme=concept_to_theme[c],
+            top_words=", ".join(w_list),
+        )
 
     n_c = len(ordered_concepts)
     for i in range(n_c):
@@ -137,6 +148,16 @@ def fit_figuur6_matrix(
             w = int(adj_clean[i, j])
             if w > 0:
                 graph.add_edge(ordered_concepts[i], ordered_concepts[j], weight=w)
+
+    # Inductieve community-detectie via het Louvain-algoritme op het actieve netwerk
+    louvain_comms = list(
+        nx.community.louvain_communities(
+            graph, weight="weight", resolution=1.2, seed=seed
+        )
+    )
+    for comm_idx, comm_nodes in enumerate(louvain_comms):
+        for node_name in comm_nodes:
+            graph.nodes[node_name]["louvain_cluster"] = comm_idx
 
     # 1. Modularity Q op themagroepen
     communities = [
@@ -227,51 +248,62 @@ def fit_figuur6_matrix(
         pct_intra=pct_intra,
         pct_inter=pct_inter,
         summary_df=summary_df,
+        df_chat=df_chat,
     )
 
 
 def plot_figuur6(
-    result: Figuur6MatrixResult,
+    result: Figuur6MatrixResult | pd.DataFrame,
     save_path: Path | None = None,
-    min_edge_weight: int = 15,
+    mode: str = "chord",
+    min_edge_weight: int = 12,
     highlight_weight: int = 35,
-    as_matrix: bool = False,
 ) -> Figure:
-    """Genereert en retourneert de gewogen concept-netwerkgraaf (of 16x16 matrix) voor Figuur 6.
+    """Genereert en retourneert de gewogen netwerkvisualisatie voor Figuur 6.
 
     Parameters
     ----------
-    result : Figuur6MatrixResult
-        Het berekende resultaat van `fit_figuur6_matrix`.
+    result : Figuur6MatrixResult | pd.DataFrame
+        Het berekende resultaat van `fit_figuur6_matrix` of direct een DataFrame met chatberichten.
     save_path : Path, optional
         Optioneel pad om de figuur als PNG/PDF op te slaan.
-    min_edge_weight : int, default=15
-        Minimale drempelwaarde voor weergegeven edges in het netwerk (speel met threshold).
+    mode : str, default="chord"
+        Type visualisatie: "chord" voor het 2-paneel vergelijkend Chord-diagram
+        (2021-2024 vs. 2025-heden), of "network" voor het klassieke conceptnetwerk.
+    min_edge_weight : int, default=12
+        Minimale drempelwaarde voor getoonde verbindingen (chords of netwerkedges).
     highlight_weight : int, default=35
-        Gewichtsdrempel waarboven verbindingen als dikke hoofdaders met getalslabel worden getoond.
-    as_matrix : bool, default=False
-        Indien True, toon de oorspronkelijke 16x16 adjacency-matrix in plaats van de netwerkgraaf.
+        Gewichtsdrempel voor geaccentueerde verbindingen in de netwerkmodus.
 
     Returns
     -------
     plt.Figure
         De resulterende matplotlib-figuur.
     """
-    if as_matrix:
-        matrix_plot = ConceptMatrixPlot()
-        fig, _ = matrix_plot.build(result.matrix_df, result.summary_df)
-    else:
+    if mode == "chord":
+        df = result if isinstance(result, pd.DataFrame) else result.df_chat
+        if df is not None:
+            chord_plot = ChordComparisonPlot()
+            fig, _ = chord_plot.build(df_chat=df, min_edge=min_edge_weight)
+        elif isinstance(result, Figuur6MatrixResult):
+            # Fallback op ConceptNetworkPlot als df_chat niet meegeleverd is
+            net_plot = ConceptNetworkPlot()
+            fig, _ = net_plot.build(
+                result.graph,
+                min_edge_weight=min_edge_weight,
+                highlight_weight=highlight_weight,
+            )
+        else:
+            raise ValueError("Geen geldige chatdata of Figuur6MatrixResult voor Figuur 6.")
+    elif isinstance(result, Figuur6MatrixResult):
         net_plot = ConceptNetworkPlot()
         fig, _ = net_plot.build(
             result.graph,
             min_edge_weight=min_edge_weight,
             highlight_weight=highlight_weight,
         )
+    else:
+        raise TypeError("Voor mode='network' is een Figuur6MatrixResult vereist.")
 
-    if save_path is not None:
-        with contextlib.suppress(PermissionError):
-            save_path = Path(save_path)
-            save_path.parent.mkdir(parents=True, exist_ok=True)
-            fig.savefig(save_path, dpi=200, bbox_inches="tight")
-
+    save_figure(fig, save_path, dpi=300)
     return fig
